@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Panduan Penggunaan — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div>
+    <h1>Panduan Penggunaan Aplikasi</h1>
+    <p>Cara memakai setiap modul {{ APP_SHORT_NAME or 'SIMPRODI' }}, dikelompokkan sama seperti menu di sidebar.</p>
+    <p class="hint no-print" style="margin-top:4px;">"Unduh Dokumen Resmi" menghasilkan file Word (.docx) lengkap dengan sampul, identitas dokumen, kata pengantar, dan daftar isi otomatis — siap diarsipkan atau dicetak.</p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;" class="no-print">
+    <button type="button" class="btn-outline" onclick="panduanSetAll(true)">Buka semua</button>
+    <button type="button" class="btn-outline" onclick="panduanSetAll(false)">Tutup semua</button>
+    <button type="button" class="btn-outline" onclick="panduanPrint()">🖨️ Cetak / Simpan PDF</button>
+    <a class="btn-primary" href="{{ url_for('panduan.unduh') }}">⬇️ Unduh Dokumen Resmi (.docx)</a>
+  </div>
+</div>
+
+<div class="card no-print" style="margin-bottom:18px;">
+  <input type="text" id="panduanSearch" class="search" style="width:100%;"
+         placeholder="Cari nama modul, mis. 'Nilai', 'Surat', 'Yudisium'…"
+         oninput="panduanFilter(this.value)">
+  <p id="panduanSearchEmpty" class="hint" style="display:none;margin-top:10px;">
+    Tidak ada modul yang cocok dengan pencarian.
+  </p>
+</div>
+
+<div class="panduan-toc card no-print" style="padding:16px 20px;">
+  <div class="card-sub" style="margin-bottom:10px;">Lompat ke grup:</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;">
+    {% for group_label, group_desc, modules in panduan_groups %}
+    <a href="#panduan-{{ loop.index0 }}" class="filter-chip">{{ group_label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+{% for group_label, group_desc, modules in panduan_groups %}
+<div class="panduan-group card" id="panduan-{{ loop.index0 }}" data-panduan-group>
+  <div class="panduan-group-head" onclick="panduanToggleGroup(this)" role="button" tabindex="0"
+       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();panduanToggleGroup(this);}">
+    <div>
+      <h2 style="margin-bottom:2px;">{{ group_label }}</h2>
+      <p class="card-sub" style="margin:0;">{{ group_desc }}</p>
+    </div>
+    <span class="chev">▾</span>
+  </div>
+  <div class="panduan-group-body">
+    <div class="panduan-group-body-inner">
+      {% for m in modules %}
+      <div class="panduan-item" data-panduan-item data-panduan-search="{{ m.judul|lower }}">
+        <div class="panduan-item-head">
+          <h3 class="panduan-item-title">{{ m.judul }}</h3>
+          <a class="btn-outline no-print" style="padding:5px 12px;font-size:12px;" href="{{ url_for(m.endpoint) }}">Buka modul →</a>
+        </div>
+        <p class="panduan-item-ringkasan">{{ m.ringkasan }}</p>
+        {% if m.langkah %}
+        <div class="panduan-sublabel">Langkah pemakaian</div>
+        <ol class="panduan-steps">
+          {% for l in m.langkah %}<li>{{ l }}</li>{% endfor %}
+        </ol>
+        {% endif %}
+        {% if m.tips %}
+        <div class="panduan-sublabel">Tips</div>
+        <ul class="panduan-tips">
+          {% for t in m.tips %}<li>{{ t }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% if roadmap_note %}
+<div class="card" style="background:var(--canvas);border-style:dashed;">
+  <p class="hint" style="margin:0;">ℹ️ {{ roadmap_note }}</p>
+</div>
+{% endif %}
+
+<script>
+function panduanToggleGroup(headEl){
+  const group = headEl.closest('[data-panduan-group]');
+  group.classList.toggle('collapsed');
+}
+function panduanSetAll(open){
+  document.querySelectorAll('[data-panduan-group]').forEach(function(g){
+    g.classList.toggle('collapsed', !open);
+  });
+}
+function panduanPrint(){
+  // Buka semua grup dulu supaya seluruh isi panduan ikut tercetak/terekspor
+  // ke PDF, bukan cuma grup yang sedang terbuka di layar.
+  panduanSetAll(true);
+  window.print();
+}
+function panduanEscapeRegExp(s){
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function panduanHighlight(el, query){
+  // Simpan teks asli sekali (sebelum di-mark) supaya bisa dikembalikan
+  // saat pencarian dikosongkan/berganti kata kunci.
+  if (el.dataset.origText === undefined) el.dataset.origText = el.textContent;
+  const original = el.dataset.origText;
+  if (!query){
+    el.textContent = original;
+    return;
+  }
+  const re = new RegExp('(' + panduanEscapeRegExp(query) + ')', 'ig');
+  el.innerHTML = original.replace(re, '<mark>$1</mark>');
+}
+function panduanFilter(q){
+  q = (q || '').trim().toLowerCase();
+  let anyVisible = false;
+  document.querySelectorAll('[data-panduan-group]').forEach(function(group){
+    let groupHasMatch = false;
+    group.querySelectorAll('[data-panduan-item]').forEach(function(item){
+      const match = !q || item.getAttribute('data-panduan-search').indexOf(q) !== -1;
+      item.style.display = match ? '' : 'none';
+      if (match) groupHasMatch = true;
+      const titleEl = item.querySelector('.panduan-item-title');
+      if (titleEl) panduanHighlight(titleEl, match ? q : '');
+    });
+    group.style.display = groupHasMatch ? '' : 'none';
+    if (groupHasMatch){
+      anyVisible = true;
+      if (q) group.classList.remove('collapsed');
+    }
+  });
+  document.getElementById('panduanSearchEmpty').style.display = (q && !anyVisible) ? '' : 'none';
+}
+</script>
+{% endblock %}

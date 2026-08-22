@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Rekap Rasio Beban Dosen — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Rekap & Laporan</div>
+<div class="page-head">
+  <div><h1>Rekap Rasio Beban Dosen</h1><p>Gabungan beban bimbingan + tugas penguji per dosen. Ambang batas diatur di Pengaturan.
+    {% if hanya_homebase %}Menampilkan <strong>hanya dosen homebase</strong> (basis rasio resmi BAN-PT/PDDikti).{% else %}Menampilkan <strong>semua dosen aktif</strong> (termasuk dosen luar).{% endif %}</p></div>
+  <div style="display:flex;gap:8px;">
+    {% if hanya_homebase %}
+      <a class="btn-outline" href="{{ url_for('rekap.rasio_dosen', semua=1) }}">👥 Tampilkan Semua Dosen</a>
+    {% else %}
+      <a class="btn-outline" href="{{ url_for('rekap.rasio_dosen') }}">🏠 Hanya Dosen Homebase</a>
+    {% endif %}
+    <a class="btn-outline" href="{{ url_for('rekap.rasio_dosen_ekspor') }}">📤 Ekspor Excel</a>
+  </div>
+</div>
+<div class="card" style="padding:8px 0;overflow-x:auto;">
+  <table>
+    <thead><tr><th style="padding-left:24px;">Nama Dosen</th>{% if not hanya_homebase %}<th>Homebase</th>{% endif %}<th>Pem.1</th><th>Pem.2</th><th>Total Bimb.</th><th>Sudah Seminar</th><th>Sudah Sidang</th><th>Tugas Penguji</th><th>Total Keterlibatan</th><th style="padding-right:24px;">Status</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td class="nama" style="padding-left:24px;">{{ r.nama }}</td>
+        {% if not hanya_homebase %}<td><span class="badge {{ 'ok' if r.status_homebase == 'Homebase' else '' }}">{{ r.status_homebase }}</span></td>{% endif %}
+        <td class="mono">{{ r.pemb1 }}</td><td class="mono">{{ r.pemb2 }}</td><td class="mono">{{ r.total_bimb }}</td>
+        <td class="mono">{{ r.sudah_seminar }} ({{ r.persen_seminar }}%)</td>
+        <td class="mono">{{ r.sudah_sidang }} ({{ r.persen_sidang }}%)</td>
+        <td class="mono">{{ r.total_tugas_penguji }}</td>
+        <td class="mono">{{ r.total_keterlibatan }}</td>
+        <td style="padding-right:24px;">
+          {% if '⚠️' in r.status %}<span class="badge warn"><span class="dot"></span>{{ r.status }}</span>{% else %}<span class="badge ok"><span class="dot"></span>{{ r.status }}</span>{% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="{{ 9 if hanya_homebase else 10 }}" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada data.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

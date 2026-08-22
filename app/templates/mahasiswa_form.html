@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Ubah' if row else 'Tambah' }} Mahasiswa — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Data Master</div>
+<div class="page-head">
+  <div>
+    <h1>{{ 'Ubah Data Mahasiswa' if row else 'Tambah Mahasiswa' }}</h1>
+    <p>{{ row.nama if row else 'Isi data mahasiswa baru' }}</p>
+  </div>
+  <a class="btn-outline" href="{{ url_for('mahasiswa.list_view') }}">← Kembali</a>
+</div>
+
+<div class="card" style="max-width:760px;">
+  <form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-row">
+      <div class="field"><label>NIM</label><input name="nim" value="{{ row.nim if row else '' }}" required></div>
+      <div class="field"><label>Nama Lengkap</label><input name="nama" value="{{ row.nama if row else '' }}" required></div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Jenis Kelamin</label>
+        <select name="jk">
+          <option value="">-</option>
+          {% for jk in JK_LIST %}<option value="{{ jk }}" {% if row and row.jk==jk %}selected{% endif %}>{{ jk }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field"><label>Angkatan</label><input name="angkatan" value="{{ row.angkatan if row else '' }}"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Tempat Lahir</label><input name="tempat_lahir" value="{{ row.tempat_lahir if row else '' }}"></div>
+      <div class="field"><label>Tanggal Lahir</label><input name="tgl_lahir" value="{{ row.tgl_lahir if row else '' }}" placeholder="dd Mon yyyy"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>No. HP</label><input name="no_hp" value="{{ row.no_hp if row else '' }}"></div>
+      <div class="field"><label>Email / NIK</label><input name="email_nik" value="{{ row.email_nik if row else '' }}"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Konsentrasi</label><input name="konsentrasi" value="{{ row.konsentrasi if row else '' }}"></div>
+      <div class="field">
+        <label>Skema</label>
+        <select name="skema">
+          <option value="Reguler" {% if row and row.skema=='Reguler' %}selected{% endif %}>Reguler</option>
+          <option value="RPL" {% if row and row.skema=='RPL' %}selected{% endif %}>RPL</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Status Mahasiswa</label>
+        <select name="status">
+          {% for s in STATUS_MHS_LIST %}<option value="{{ s }}" {% if row and row.status==s %}selected{% elif not row and s=='Aktif' %}selected{% endif %}>{{ s }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        {% if row %}
+        <label>Status TA <span style="font-weight:400;color:var(--muted);">(otomatis)</span></label>
+        <div style="padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-soft,#f7f7f8);">
+          <span class="badge"><span class="dot"></span>{{ row.status_ta }}</span>
+        </div>
+        <div class="hint">Dihitung otomatis dari histori Pengajuan Judul → SK Pembimbing → Seminar → Sidang. Untuk mengubahnya, perbarui data di modul terkait, bukan di sini.</div>
+        {% else %}
+        <label>Status TA</label>
+        <div style="padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-soft,#f7f7f8);color:var(--muted);">
+          Belum Mengajukan Judul <span style="font-weight:400;">(otomatis untuk mahasiswa baru)</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="field"><label>Catatan</label><input name="catatan" value="{{ row.catatan if row else '' }}"></div>
+    </div>
+    <button class="btn-primary" type="submit" style="padding:10px 18px;">💾 Simpan</button>
+  </form>
+</div>
+
+{% if row and riwayat_ta %}
+<div class="card" style="max-width:760px;margin-top:16px;overflow-x:auto;">
+  <h2>📜 Riwayat Status TA</h2>
+  <p class="card-sub">Jejak perubahan Status TA — dicatat otomatis setiap kali status berubah (Phase 3: TA Workflow Engine).</p>
+  <table>
+    <thead><tr><th>Waktu</th><th>Dari</th><th>Ke</th><th>Dipicu Oleh</th></tr></thead>
+    <tbody>
+      {% for r in riwayat_ta|reverse %}
+      <tr>
+        <td class="mono">{{ r.waktu }}</td>
+        <td>{{ r.status_lama or '—' }}</td>
+        <td>
+          <span class="badge"><span class="dot"></span>{{ r.status_baru }}</span>
+          {% if not r.wajar %}<span class="hint" style="color:var(--danger);">⚠ transisi tidak umum</span>{% endif %}
+        </td>
+        <td>{{ r.dipicu_oleh or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

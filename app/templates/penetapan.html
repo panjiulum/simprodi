@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Penetapan Pembimbing — {{ APP_NAME }}{% endblock %}
+{% macro dosen_select(name, selected_id) %}
+<select name="{{ name }}">
+  <option value="">-</option>
+  {% for d in dosen_list %}<option value="{{ d.id }}" {% if selected_id==d.id %}selected{% endif %}>{{ d.nama }}</option>{% endfor %}
+</select>
+{% endmacro %}
+{% block content %}
+<div class="eyebrow">Alur Skripsi</div>
+<div class="page-head">
+  <div><h1>Penetapan Dosen Pembimbing</h1><p>{{ rows|length }} SK · sumber rujukan alur Seminar & Sidang</p></div>
+</div>
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">NIM</th><th>Nama</th><th>Pembimbing 1</th><th>Pembimbing 2</th><th>No. SK</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="nim" style="padding-left:24px;">{{ r.nim }}</td>
+            <td class="nama">{{ r.nama }}</td>
+            <td>{{ r.p1 }}</td>
+            <td>{{ r.p2 }}</td>
+            <td class="mono">{{ r.no_sk }}</td>
+            <td style="padding-right:24px;text-align:right;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('akademik.penetapan_list', edit=r.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('akademik.penetapan_hapus', pid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Belum ada data.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah Penetapan' if edit_row else 'Tambah Penetapan' }}</h2>
+      <form method="post" action="{{ url_for('akademik.penetapan_simpan') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_row %}<input type="hidden" name="id" value="{{ edit_row.id }}">{% endif %}
+        <div class="field-compact">
+          <label>Mahasiswa *</label>
+          <select name="mahasiswa_id" required>
+            <option value="">- pilih -</option>
+            {% for m in mhs_list %}<option value="{{ m.id }}" {% if edit_row and edit_row.mahasiswa_id==m.id %}selected{% endif %}>{{ m.nim }} - {{ m.nama }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact">
+          <label>Periode Akademik</label>
+          <select name="periode_akademik_id">
+            <option value="">— pilih periode —</option>
+            {% for p in daftar_periode %}
+            <option value="{{ p.id }}" {% if edit_row and edit_row.periode_akademik_id==p.id %}selected{% endif %}>{{ p.label }}</option>
+            {% endfor %}
+          </select>
+          {% if not daftar_periode %}<small class="card-sub" style="display:block;margin-top:4px;">Belum ada tahun ajaran dibuka — buka dulu di Pengaturan → Tahun Akademik.</small>
+          {% elif edit_row and edit_row.semester %}<small class="card-sub" style="display:block;margin-top:4px;">Cache lama: {{ edit_row.semester }}</small>{% endif %}
+        </div>
+        <div class="field-compact">
+          <label>Tahap/Gelombang</label>
+          <select name="tahap">
+            <option value="">-</option>
+            {% for t in tahap_list %}<option value="{{ t }}" {% if edit_row and edit_row.tahap==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Judul Final</label><input name="judul_final" value="{{ edit_row.judul_final if edit_row else '' }}"></div>
+
+        <div class="section-label">Pembimbing</div>
+        <div class="field-compact"><label>Pembimbing 1</label>{{ dosen_select("pembimbing1_id", edit_row.pembimbing1_id if edit_row else None) }}</div>
+        <div class="field-compact"><label>Pembimbing 2</label>{{ dosen_select("pembimbing2_id", edit_row.pembimbing2_id if edit_row else None) }}</div>
+        <div class="field-compact"><label>Tgl Penetapan</label><input name="tgl_penetapan" value="{{ edit_row.tgl_penetapan if edit_row else '' }}"></div>
+        <div class="field-compact"><label>No. SK</label><input name="no_sk" value="{{ edit_row.no_sk if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Link SK (opsional)</label><input name="link_sk" value="{{ edit_row.link_sk if edit_row else '' }}"></div>
+
+        <div class="section-label">Tim Pembahas Seminar (Rencana)</div>
+        <div class="field-compact"><label>Pembahas 1</label>{{ dosen_select("pembahas1_id", edit_row.pembahas1_id if edit_row else None) }}</div>
+        <div class="field-compact"><label>Pembahas 2</label>{{ dosen_select("pembahas2_id", edit_row.pembahas2_id if edit_row else None) }}</div>
+        <div class="field-compact"><label>Pembahas 3</label>{{ dosen_select("pembahas3_id", edit_row.pembahas3_id if edit_row else None) }}</div>
+
+        <div class="section-label">Tim Penguji Sidang (Rencana)</div>
+        <div class="field-compact"><label>Ketua Sidang</label>{{ dosen_select("ketua_sidang_id", edit_row.ketua_sidang_id if edit_row else None) }}</div>
+        <div class="field-compact"><label>Penguji 1</label>{{ dosen_select("penguji1_id", edit_row.penguji1_id if edit_row else None) }}</div>
+        <div class="field-compact"><label>Penguji 2</label>{{ dosen_select("penguji2_id", edit_row.penguji2_id if edit_row else None) }}</div>
+        <div class="field-compact"><label>Penguji 3</label>{{ dosen_select("penguji3_id", edit_row.penguji3_id if edit_row else None) }}</div>
+        <div class="field-compact"><label>Penguji 4</label>{{ dosen_select("penguji4_id", edit_row.penguji4_id if edit_row else None) }}</div>
+
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+        {% if edit_row %}<a class="btn-outline btn-block" href="{{ url_for('akademik.penetapan_list') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Tracer Study Alumni — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Alur Skripsi</div>
+<div class="page-head">
+  <div><h1>Tracer Study Alumni</h1><p>{{ rows|length }} data</p></div>
+  <a class="btn-outline" href="{{ url_for('kelulusan.tracer_ekspor') }}">📤 Ekspor Excel</a>
+</div>
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">NIM</th><th>Nama</th><th>Status Saat Ini</th><th>Instansi</th><th>Studi Lanjut?</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="nim" style="padding-left:24px;">{{ r.nim }}</td>
+            <td class="nama">{{ r.nama }}</td>
+            <td>{{ r.status_saat_ini }}</td>
+            <td>{{ r.nama_instansi }}</td>
+            <td>{{ r.studi_lanjut }}</td>
+            <td style="padding-right:24px;text-align:right;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kelulusan.tracer_list', edit=r.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('kelulusan.tracer_hapus', tid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Belum ada data tracer study.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah' if edit_row else 'Tambah' }} Tracer Study</h2>
+      <form method="post" action="{{ url_for('kelulusan.tracer_simpan') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_row %}<input type="hidden" name="id" value="{{ edit_row.id }}">{% endif %}
+        <div class="field-compact">
+          <label>Alumni (sudah wisuda) *</label>
+          <select name="mahasiswa_id" required>
+            <option value="">- pilih -</option>
+            {% for m in alumni %}<option value="{{ m.id }}" {% if edit_row and edit_row.mahasiswa_id==m.id %}selected{% endif %}>{{ m.nim }} - {{ m.nama }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact">
+          <label>Status Saat Ini</label>
+          <select name="status_saat_ini">{% for s in STATUS_KERJA_LIST %}<option value="{{ s }}" {% if edit_row and edit_row.status_saat_ini==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Nama Instansi/Perusahaan</label><input name="nama_instansi" value="{{ edit_row.nama_instansi if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Posisi/Jabatan</label><input name="posisi" value="{{ edit_row.posisi if edit_row else '' }}"></div>
+        <div class="field-compact">
+          <label>Kesesuaian Bidang</label>
+          <select name="kesesuaian_bidang"><option value="">-</option><option {% if edit_row and edit_row.kesesuaian_bidang=='Sesuai' %}selected{% endif %}>Sesuai</option><option {% if edit_row and edit_row.kesesuaian_bidang=='Tidak Sesuai' %}selected{% endif %}>Tidak Sesuai</option><option {% if edit_row and edit_row.kesesuaian_bidang=='Sebagian Sesuai' %}selected{% endif %}>Sebagian Sesuai</option></select>
+        </div>
+        <div class="field-compact"><label>Waktu Tunggu Kerja</label><input name="waktu_tunggu" value="{{ edit_row.waktu_tunggu if edit_row else '' }}"></div>
+        <div class="field-compact">
+          <label>Studi Lanjut?</label>
+          <select name="studi_lanjut">{% for s in STUDI_LANJUT_LIST %}<option value="{{ s }}" {% if edit_row and edit_row.studi_lanjut==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Program Studi Lanjut</label><input name="program_lanjut" value="{{ edit_row.program_lanjut if edit_row else '' }}"></div>
+        <div class="field-compact"><label>No. HP Terbaru</label><input name="no_hp" value="{{ edit_row.no_hp if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Catatan/Saran untuk Prodi</label><input name="catatan" value="{{ edit_row.catatan if edit_row else '' }}"></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+        {% if edit_row %}<a class="btn-outline btn-block" href="{{ url_for('kelulusan.tracer_list') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}{{ dosen.nama }} — Kinerja Dosen — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow"><a href="{{ url_for('sdm.index') }}" style="color:inherit;">SDM & Kinerja Dosen</a></div>
+<div class="page-head">
+  <div><h1>{{ dosen.nama }}</h1><p>{{ dosen.nidn or '-' }} · Kesiapan BKD {{ kesiapan_bkd }}% · Kesiapan SISTER {{ kesiapan_sister }}%</p></div>
+</div>
+
+{% if reminder %}
+<div class="card" style="border-color:var(--warning);">
+  <h2>⏰ Reminder Masa Berlaku</h2>
+  {% for r in reminder %}
+  <div class="list-row">
+    <div class="lt">{{ r.nama }}<small>{{ r.tgl }}</small></div>
+    <div class="rt"><span class="badge {{ 'danger' if r.status=='Kadaluarsa' else 'warn' }}"><span class="dot"></span>{{ r.status }} ({{ r.sisa_hari }} hari)</span></div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<form class="tab-row">
+  <input type="hidden" name="dosen_id" value="{{ dosen.id }}">
+  {% for key, c in tabs.items() %}
+  <a class="tab-item {% if tab==key %}active{% endif %}" href="{{ url_for('sdm.detail', dosen_id=dosen.id, tab=key) }}">{{ c.label }}</a>
+  {% endfor %}
+</form>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:18px 0 6px;">
+      <table>
+        <thead><tr>
+          {% for col in cfg.kolom_tabel %}<th {% if loop.first %}style="padding-left:24px;"{% endif %}>{{ col.replace('_',' ')|title }}</th>{% endfor %}
+          <th style="padding-right:24px;"></th>
+        </tr></thead>
+        <tbody>
+        {% for row in rows %}
+          <tr>
+            {% for col in cfg.kolom_tabel %}
+            <td {% if loop.first %}class="mono" style="padding-left:24px;"{% endif %}>
+              {% if tab=='target' and col=='kategori' %}
+                {{ row[col] }}
+              {% else %}
+                {{ row[col] if row[col] is not none else '-' }}
+              {% endif %}
+            </td>
+            {% endfor %}
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              {% if tab=='target' %}
+                {% for tr in target_realisasi %}{% if tr.row.id==row.id %}
+                  <span class="badge {{ 'ok' if tr.capaian and tr.capaian>=100 else 'warn' }}" style="margin-right:8px;">Realisasi {{ tr.realisasi }}{% if tr.capaian is not none %} ({{ tr.capaian }}%){% endif %}</span>
+                {% endif %}{% endfor %}
+              {% endif %}
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('sdm.detail', dosen_id=dosen.id, tab=tab, edit=row.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('sdm.hapus', dosen_id=dosen.id, jenis=tab, item_id=row.id) }}" style="display:inline;" onsubmit="return confirm('Hapus data ini?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="{{ cfg.kolom_tabel|length + 1 }}" style="text-align:center;color:var(--muted);padding:20px;">Belum ada data {{ cfg.label|lower }}.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah' if edit_row else 'Tambah' }} — {{ cfg.label }}</h2>
+      <form method="post" action="{{ url_for('sdm.simpan', dosen_id=dosen.id, jenis=tab) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_row %}<input type="hidden" name="id" value="{{ edit_row.id }}">{% endif %}
+        {% for field in cfg.fields %}
+          {% set name = field[0] %}{% set label = field[1] %}{% set ftype = field[2] %}
+          <div class="field-compact">
+            <label>{{ label }}</label>
+            {% if ftype == 'select' %}
+              <select name="{{ name }}">
+                <option value="">—</option>
+                {% for opt in field[3] %}
+                <option value="{{ opt }}" {% if edit_row and edit_row[name]==opt %}selected{% endif %}>{{ opt }}</option>
+                {% endfor %}
+              </select>
+            {% elif ftype == 'periode' %}
+              <select name="{{ name }}">
+                <option value="">— pilih periode —</option>
+                {% for p in daftar_periode %}
+                <option value="{{ p.id }}" {% if edit_row and edit_row[name]==p.id %}selected{% endif %}>{{ p.label }}</option>
+                {% endfor %}
+              </select>
+              {% if not daftar_periode %}<small class="card-sub" style="display:block;margin-top:4px;">Belum ada tahun ajaran dibuka — buka dulu di Pengaturan → Tahun Akademik.</small>{% endif %}
+            {% elif ftype == 'textarea' %}
+              <textarea name="{{ name }}" rows="2">{{ edit_row[name] if edit_row else '' }}</textarea>
+            {% elif ftype == 'number' %}
+              <input type="number" step="any" name="{{ name }}" value="{{ edit_row[name] if edit_row else '' }}">
+            {% else %}
+              <input name="{{ name }}" value="{{ edit_row[name] if edit_row else '' }}">
+            {% endif %}
+          </div>
+        {% endfor %}
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+        {% if edit_row %}<a class="btn-outline btn-block" href="{{ url_for('sdm.detail', dosen_id=dosen.id, tab=tab) }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

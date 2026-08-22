@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Rekap Honor Keuangan — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Rekap & Laporan</div>
+<div class="page-head">
+  <div><h1>Rekap Honor Keuangan</h1><p>Gabungan honor Seminar + Sidang (penguji & pembimbing), per dosen · per tahap · per kategori — siap dilampirkan ke bagian keuangan</p></div>
+  <a class="btn-outline" href="{{ url_for('rekap.honor_keuangan_ekspor', tahap=tahap) }}">📤 Ekspor Excel</a>
+</div>
+{% include "_tahap_filter.html" %}
+
+{% for g in kelompok %}
+<div class="card" style="padding:8px 0;margin-bottom:14px;overflow-x:auto;">
+  <div style="padding:12px 24px 4px;display:flex;justify-content:space-between;align-items:baseline;">
+    <h2 style="margin:0;">{{ g.nama }}</h2>
+    <span class="mono" style="font-weight:600;">Rp {{ "{:,.0f}".format(g.subtotal).replace(",", ".") }}</span>
+  </div>
+  <table>
+    <thead><tr><th style="padding-left:24px;">Tahap</th><th>Kategori</th><th>Jumlah</th><th>Tarif</th><th style="padding-right:24px;">Honor</th></tr></thead>
+    <tbody>
+    {% for r in g.rows %}
+      <tr>
+        <td style="padding-left:24px;">{{ r.tahap }}</td>
+        <td>{{ r.kategori }}</td>
+        <td class="mono">{{ r.jumlah }}</td>
+        <td class="mono">Rp {{ "{:,.0f}".format(r.tarif).replace(",", ".") }}</td>
+        <td class="mono" style="padding-right:24px;">Rp {{ "{:,.0f}".format(r.honor).replace(",", ".") }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="padding:20px;text-align:center;color:var(--muted);">Tidak ada data honor{% if tahap and tahap != 'Semua' %} pada tahap "{{ tahap }}"{% endif %}.</div>
+{% endfor %}
+
+<p style="text-align:right;font-weight:600;color:var(--ink);">Grand Total Honor: Rp {{ "{:,.0f}".format(total).replace(",", ".") }}</p>
+{% endblock %}

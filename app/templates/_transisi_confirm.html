@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Konfirmasi Transisi Status — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Peringatan</div>
+<div class="page-head"><div><h1>⚠️ Periksa Kembali Urutan Tahapan</h1></div></div>
+<div class="card" style="max-width:640px;border-color:var(--warn, #ea580c);">
+  <h2 style="color:var(--warn, #ea580c);">Sebelum melanjutkan:</h2>
+  <ul style="font-size:13px;color:var(--body-text);line-height:1.8;">
+    {% for p in peringatan %}<li>{{ p }}</li>{% endfor %}
+  </ul>
+  <p class="hint">Anda tetap bisa menyimpan data ini kalau memang disengaja (misal input data lampau/susulan).</p>
+  <form method="post" action="{{ action }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for key, val in form.items() %}
+      {% if key not in ['konfirmasi_transisi'] %}<input type="hidden" name="{{ key }}" value="{{ val }}">{% endif %}
+    {% endfor %}
+    <input type="hidden" name="konfirmasi_transisi" value="1">
+    <button class="btn-primary" type="submit" style="padding:10px 18px;background:var(--warn,#ea580c);">Tetap Simpan</button>
+    <a class="btn-outline" href="javascript:history.back()" style="margin-left:8px;">Batal, Kembali</a>
+  </form>
+</div>
+{% endblock %}

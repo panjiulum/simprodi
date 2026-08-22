@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Rekap Program Kerja & Kegiatan — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Rekap & Laporan</div>
+<div class="page-head">
+  <div><h1>Rekap Program Kerja & Kegiatan Prodi</h1><p>Realisasi (%) dihitung otomatis dari rasio kegiatan berstatus "Selesai" — angka sama persis dengan yang tampil di halaman Program Kerja.</p></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <form method="get" style="display:flex;gap:8px;">
+      <select name="tahun_akademik" onchange="this.form.submit()">
+        <option value="">Semua Tahun</option>
+        {% for t in tahun_list %}
+          <option value="{{ t }}" {{ 'selected' if t == tahun_akademik }}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    <a class="btn-outline" href="{{ url_for('rekap.program_kerja_ekspor', tahun_akademik=tahun_akademik) }}">📤 Ekspor Excel</a>
+  </div>
+</div>
+
+<div class="card" style="padding:8px 0;margin-bottom:20px;overflow-x:auto;">
+  <div style="padding:16px 24px 4px;font-weight:600;">Ringkasan per Bidang</div>
+  <table>
+    <thead><tr><th style="padding-left:24px;">Bidang</th><th class="mono">Jml Program</th><th class="mono">Jml Kegiatan</th><th class="mono">Selesai</th><th class="mono">Anggaran Rencana</th><th style="padding-right:24px;">Realisasi</th></tr></thead>
+    <tbody>
+    {% for r in ringkasan_bidang %}
+      <tr>
+        <td class="nama" style="padding-left:24px;">{{ r.bidang }}</td>
+        <td class="mono">{{ r.jumlah_program }}</td>
+        <td class="mono">{{ r.jumlah_kegiatan }}</td>
+        <td class="mono">{{ r.jumlah_selesai }}</td>
+        <td class="mono">Rp {{ "{:,.0f}".format(r.anggaran_rencana).replace(",", ".") }}</td>
+        <td style="padding-right:24px;"><span class="badge {{ 'ok' if r.persen >= 80 else ('warn' if r.persen >= 40 else '') }}">{{ r.persen }}%</span></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada data.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card" style="padding:8px 0;overflow-x:auto;">
+  <div style="padding:16px 24px 4px;font-weight:600;">Detail Program Kerja</div>
+  <table>
+    <thead><tr><th style="padding-left:24px;">Tahun</th><th>Bidang</th><th>Nama Program</th><th>Penanggung Jawab</th><th>Status</th><th class="mono">Kegiatan</th><th style="padding-right:24px;">Realisasi</th></tr></thead>
+    <tbody>
+    {% for d in detail %}
+      <tr>
+        <td class="mono" style="padding-left:24px;">{{ d.row.tahun_akademik or "—" }}</td>
+        <td>{{ d.row.bidang }}</td>
+        <td class="nama">{{ d.row.nama_program }}</td>
+        <td>{{ d.row.penanggung_jawab or "—" }}</td>
+        <td>{{ d.row.status }}</td>
+        <td class="mono">{{ d.selesai }}/{{ d.total }}</td>
+        <td style="padding-right:24px;"><span class="badge {{ 'ok' if d.persen >= 80 else ('warn' if d.persen >= 40 else '') }}">{{ d.persen }}%</span></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada data.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Import & Export Data — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div><h1>Import & Export Data</h1><p>Migrasi dari workbook Excel lama, atau ekspor data untuk cetak resmi</p></div>
+</div>
+
+<div class="card" style="max-width:680px;">
+  <h2>Import dari Excel</h2>
+  <p class="card-sub">Aman dijalankan berulang — data yang sudah ada di database tidak digandakan</p>
+  <p style="font-size:13px;color:var(--muted);">Untuk menambah/memperbarui data Dosen atau Mahasiswa saja (bukan migrasi workbook lengkap), gunakan <a href="{{ url_for('pengaturan.import_generik') }}">Import Data per Modul</a> — lebih sederhana, dengan template siap unduh.</p>
+  <form method="post" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label>Jenis Workbook</label>
+      <select name="jenis_workbook" id="jenis_workbook" onchange="document.getElementById('field_skema_default').style.display = this.value==='rpl' ? 'none' : 'block';">
+        <option value="reguler">Skripsi Reguler (Data Mahasiswa, Pengajuan Judul, Seminar, Sidang, dst.)</option>
+        <option value="rpl">RPL — Rekognisi Pembelajaran Lampau (Data Induk, Judul & Pembimbing, dst.)</option>
+      </select>
+      <div class="hint">Pilih sesuai struktur workbook Excel yang akan diunggah — dua jenis workbook ini formatnya berbeda total, jadi wajib dipilih dengan benar.</div>
+    </div>
+    <div class="field">
+      <label>File Excel (.xlsx)</label>
+      <input type="file" name="file_excel" accept=".xlsx" required>
+    </div>
+    <div class="field" id="field_skema_default" style="max-width:220px;">
+      <label>Skema default mahasiswa baru</label>
+      <select name="skema_default">
+        <option value="Reguler">Reguler</option>
+        <option value="RPL">RPL</option>
+      </select>
+      <div class="hint">Hanya berlaku untuk workbook Skripsi Reguler. Workbook RPL selalu diberi skema RPL otomatis.</div>
+    </div>
+    <button class="btn-primary" type="submit" style="padding:10px 18px;">📥 Mulai Import</button>
+  </form>
+
+  {% if ringkasan is not none %}
+  <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+    <h2 style="font-size:13px;">Ringkasan</h2>
+    {% for line in ringkasan %}
+    <div class="list-row"><div class="lt">{{ line }}</div></div>
+    {% else %}
+    <p style="font-size:13px;color:var(--muted);">Tidak ada sheet yang cocok ditemukan di file ini.</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="card" style="max-width:680px;">
+  <h2>Export ke Excel</h2>
+  <p class="card-sub">Ekspor per modul data, untuk keperluan cetak/laporan resmi</p>
+  <div class="list-row"><div class="lt">Data Mahasiswa</div><a class="btn-outline" href="{{ url_for('mahasiswa.ekspor') }}">Ekspor</a></div>
+  <div class="list-row"><div class="lt">Data Dosen</div><a class="btn-outline" href="{{ url_for('pengaturan.export_dosen') }}">Ekspor</a></div>
+</div>
+{% endblock %}

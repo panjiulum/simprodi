@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Konfirmasi Bentrok Jadwal — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Peringatan</div>
+<div class="page-head"><div><h1>⚠️ Bentrok Jadwal Terdeteksi</h1></div></div>
+<div class="card" style="max-width:640px;border-color:var(--danger);">
+  <h2 style="color:var(--danger);">Ditemukan bentrok jadwal dosen/ruangan/mahasiswa:</h2>
+  <ul style="font-size:13px;color:var(--body-text);line-height:1.8;">
+    {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+  </ul>
+  <p class="hint">Anda tetap bisa menyimpan data ini kalau memang disengaja (misal jadwal ganda yang sudah dikoordinasikan manual).</p>
+  <form method="post" action="{{ action }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for key, val in form.items() %}
+      {% if key not in ['konfirmasi_bentrok'] %}<input type="hidden" name="{{ key }}" value="{{ val }}">{% endif %}
+    {% endfor %}
+    <input type="hidden" name="konfirmasi_bentrok" value="1">
+    <button class="btn-primary" type="submit" style="padding:10px 18px;background:var(--danger);">Tetap Simpan</button>
+    <a class="btn-outline" href="javascript:history.back()" style="margin-left:8px;">Batal, Kembali</a>
+  </form>
+</div>
+{% endblock %}

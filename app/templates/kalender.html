@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Kalender Akademik — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Akademik Operasional</div>
+<div class="page-head">
+  <div><h1>Kalender Akademik</h1><p>Agenda ujian, rapat, libur, deadline & kegiatan prodi — {{ nama_bulan }} {{ tahun }}</p></div>
+</div>
+
+{% if daftar_akan_datang %}
+<div class="card" style="border-color:var(--warning);">
+  <h2>⏰ Akan Datang (14 hari ke depan)</h2>
+  {% for r in daftar_akan_datang %}
+  <div class="list-row">
+    <div class="lt">{{ r.judul }}<small>{{ r.tgl_mulai }}{% if r.jam %} · {{ r.jam }}{% endif %}{% if r.lokasi %} · {{ r.lokasi }}{% endif %}</small></div>
+    <div class="rt"><span class="badge warn"><span class="dot"></span>{{ r.kategori }}</span></div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="split">
+  <div class="split-table">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <a class="btn-outline" style="padding:6px 12px;" href="{{ url_for('kalender.index', tahun=prev_t, bulan=prev_b, kategori=kategori_filter) }}">‹</a>
+          <strong style="min-width:160px;text-align:center;display:inline-block;">{{ nama_bulan }} {{ tahun }}</strong>
+          <a class="btn-outline" style="padding:6px 12px;" href="{{ url_for('kalender.index', tahun=next_t, bulan=next_b, kategori=kategori_filter) }}">›</a>
+          <a class="btn-outline" style="padding:6px 12px;font-size:12px;" href="{{ url_for('kalender.index') }}">Hari Ini</a>
+        </div>
+        <form class="filter-chips" method="get" style="margin:0;">
+          <input type="hidden" name="tahun" value="{{ tahun }}"><input type="hidden" name="bulan" value="{{ bulan }}">
+          <a class="filter-chip {% if not kategori_filter %}active{% endif %}" href="{{ url_for('kalender.index', tahun=tahun, bulan=bulan) }}">Semua</a>
+          {% for k in kategori_list %}
+          <a class="filter-chip {% if kategori_filter==k %}active{% endif %}" href="{{ url_for('kalender.index', tahun=tahun, bulan=bulan, kategori=k) }}">{{ k }}</a>
+          {% endfor %}
+        </form>
+      </div>
+
+      <table class="small-table" style="width:100%;table-layout:fixed;">
+        <thead><tr>{% for h in hari_nama %}<th style="text-align:center;">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+          {% for minggu in minggu_list %}
+          <tr>
+            {% for hari in minggu %}
+            <td style="vertical-align:top;height:78px;padding:6px;border:1px solid var(--border, #e5e7eb);{% if hari==0 %}background:rgba(0,0,0,0.02);{% endif %}">
+              {% if hari != 0 %}
+                <div style="font-size:12px;font-weight:600;{% if hari==today.day and bulan==today.month and tahun==today.year %}color:var(--primary);{% endif %}">{{ hari }}</div>
+                {% for r in per_tanggal.get(hari, []) %}
+                  <a href="{{ url_for('kalender.index', tahun=tahun, bulan=bulan, edit=r.id) }}" style="display:block;text-decoration:none;margin-top:3px;font-size:10.5px;padding:2px 5px;border-radius:5px;color:#fff;background:{{ warna_kategori.get(r.kategori, '#64748b') }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ r.judul }}">{{ r.judul }}</a>
+                {% endfor %}
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Daftar Agenda</h2>
+      <table>
+        <thead><tr><th style="padding-left:24px;">Tanggal</th><th>Judul</th><th>Kategori</th><th>Status</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for r in semua %}
+          <tr>
+            <td class="mono" style="padding-left:24px;">{{ r.tgl_mulai }}{% if r.jam %} {{ r.jam }}{% endif %}</td>
+            <td class="nama">{{ r.judul }}</td>
+            <td><span class="badge" style="background:{{ warna_kategori.get(r.kategori,'#64748b') }}22;color:{{ warna_kategori.get(r.kategori,'#64748b') }};"><span class="dot"></span>{{ r.kategori }}</span></td>
+            <td>{{ r.status }}</td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kalender.index', tahun=tahun, bulan=bulan, edit=r.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('kalender.hapus', kid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus agenda {{ r.judul }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada agenda.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah Agenda' if edit_row else 'Tambah Agenda' }}</h2>
+      <form method="post" action="{{ url_for('kalender.simpan') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_row %}<input type="hidden" name="id" value="{{ edit_row.id }}">{% endif %}
+        <div class="field-compact"><label>Judul *</label><input name="judul" value="{{ edit_row.judul if edit_row else '' }}" required></div>
+        <div class="field-compact"><label>Kategori</label>
+          <select name="kategori">
+            {% for k in kategori_list %}<option value="{{ k }}" {% if edit_row and edit_row.kategori==k %}selected{% endif %}>{{ k }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Tanggal Mulai * (YYYY-MM-DD)</label><input name="tgl_mulai" placeholder="2026-08-15" value="{{ edit_row.tgl_mulai if edit_row else '' }}" required></div>
+        <div class="field-compact"><label>Tanggal Selesai (opsional)</label><input name="tgl_selesai" placeholder="2026-08-16" value="{{ edit_row.tgl_selesai if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Jam</label><input name="jam" placeholder="09.00" value="{{ edit_row.jam if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Lokasi</label><input name="lokasi" value="{{ edit_row.lokasi if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Deskripsi</label><textarea name="deskripsi" rows="3">{{ edit_row.deskripsi if edit_row else '' }}</textarea></div>
+        <div class="field-compact"><label>Status</label>
+          <select name="status">
+            {% for s in status_list %}<option value="{{ s }}" {% if edit_row and edit_row.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Pengingat (H- berapa hari)</label><input type="number" name="pengingat_hari" value="{{ edit_row.pengingat_hari if edit_row else 3 }}"></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+        {% if edit_row %}<a class="btn-outline btn-block" href="{{ url_for('kalender.index', tahun=tahun, bulan=bulan) }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

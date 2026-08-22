@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+{% block title %}Kerja Sama & Mitra — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Kerjasama</div>
+<div class="page-head">
+  <div>
+    <h1>🤝 Kerja Sama & Mitra</h1>
+    <p>Direktori mitra, siklus hidup MoU/MoA/IA, program implementasi & luaran kerja sama</p>
+  </div>
+</div>
+
+<form class="tab-row">
+  <a class="tab-item {% if tab=='dashboard' %}active{% endif %}" href="{{ url_for('kerjasama.index', tab='dashboard') }}">📊 Dashboard</a>
+  <a class="tab-item {% if tab=='mitra' %}active{% endif %}" href="{{ url_for('kerjasama.index', tab='mitra') }}">🏢 Mitra & Dokumen</a>
+  <a class="tab-item {% if tab=='program' %}active{% endif %}" href="{{ url_for('kerjasama.index', tab='program') }}">💼 Program & Implementasi</a>
+  <a class="tab-item {% if tab=='evaluasi' %}active{% endif %}" href="{{ url_for('kerjasama.index', tab='evaluasi') }}">🏆 Evaluasi & Luaran</a>
+</form>
+
+{% if tab == 'dashboard' %}
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Total Mitra</div>
+    <div class="val">{{ ringkasan.total_mitra }}</div>
+    <div class="delta">seluruh kategori</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">MoU/MoA/IA Aktif</div>
+    <div class="val">{{ ringkasan.dokumen_aktif }}</div>
+    <div class="delta">dokumen berstatus Aktif</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Program Berjalan</div>
+    <div class="val">{{ ringkasan.program_berjalan }}</div>
+    <div class="delta">Implementation Arrangement</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Segera/Sudah Berakhir</div>
+    <div class="val">{{ ringkasan.segera_berakhir }}</div>
+    <div class="delta {% if ringkasan.segera_berakhir %}warn{% endif %}">≤ 30 hari</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2>Sebaran Mitra per Kategori</h2>
+    <p class="card-sub">{{ sebaran.internasional }} mitra berskala Internasional</p>
+    {% if sebaran.per_kategori %}
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+      {% for k in sebaran.per_kategori %}
+      <div class="list-row">
+        <div class="lt">{{ k.kategori }}</div>
+        <span class="badge"><span class="dot"></span>{{ k.c }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="font-size:13px;color:var(--muted);">Belum ada mitra terdaftar.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>⭐ Indeks Kepuasan Mitra</h2>
+    <p class="card-sub">Rata-rata skor kepuasan yang benar-benar diisi di tab Program & Implementasi</p>
+    {% if rata_kepuasan is not none %}
+    <div style="text-align:center;padding:20px 0;">
+      <div style="font-size:40px;font-weight:800;color:var(--primary);">{{ rata_kepuasan }}%</div>
+      <div style="font-size:12.5px;color:var(--muted);">rata-rata dari program yang sudah dievaluasi</div>
+    </div>
+    {% else %}
+    <p style="font-size:13px;color:var(--muted);">Belum ada program dengan skor kepuasan terisi — isi lewat form Program & Implementasi.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>🗓️ Reminder Dokumen MoU/MoA/IA</h2>
+  <p class="card-sub">Dokumen aktif dengan tanggal berakhir ≤ 30 hari (atau sudah lewat)</p>
+  {% if reminder %}
+    {% for r in reminder %}
+    <div class="list-row">
+      <div class="lt">{{ r.judul }}<small>{{ r.jenis_dokumen }} · {{ r.mitra_nama }}</small></div>
+      <span class="badge {{ 'danger' if r.status=='Sudah Berakhir' else 'warn' }}"><span class="dot"></span>{{ r.tgl_berakhir }} ({{ r.sisa_hari }}h)</span>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="font-size:13px;color:var(--muted);">Tidak ada dokumen yang mendekati/lewat tanggal berakhir.</p>
+  {% endif %}
+</div>
+
+{% elif tab == 'mitra' %}
+<div class="card" style="padding:18px 24px;">
+  <form class="filter-chips" style="margin:0;flex-wrap:wrap;">
+    <input type="hidden" name="tab" value="mitra">
+    <a class="filter-chip {% if not kategori %}active{% endif %}" href="{{ url_for('kerjasama.index', tab='mitra') }}">Semua Kategori</a>
+    {% for k in kategori_mitra_list %}
+    <a class="filter-chip {% if kategori==k %}active{% endif %}" href="{{ url_for('kerjasama.index', tab='mitra', kategori=k) }}">{{ k }}</a>
+    {% endfor %}
+  </form>
+  <form method="get" class="search" style="margin-top:12px;">
+    <input type="hidden" name="tab" value="mitra">
+    {% if kategori %}<input type="hidden" name="kategori" value="{{ kategori }}">{% endif %}
+    <select name="skala" onchange="this.form.submit()" style="max-width:180px;">
+      <option value="">Semua Skala</option>
+      {% for s in skala_mitra_list %}<option value="{{ s }}" {% if skala==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+    <input name="cari" placeholder="Cari nama atau alamat mitra..." value="{{ cari }}">
+    <button class="btn-outline" type="submit">Terapkan</button>
+  </form>
+</div>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr>
+          <th style="padding-left:24px;">Nama Mitra</th><th>Kategori & Skala</th><th>Status Dokumen</th><th>Program</th><th style="padding-right:24px;"></th>
+        </tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr class="{% if mitra_terpilih and mitra_terpilih.id==r.id %}active{% endif %}">
+            <td style="padding-left:24px;"><div class="nama">{{ r.nama }}</div><div class="card-sub" style="margin:0;">{{ r.kontak_person or '-' }}</div></td>
+            <td><span class="badge"><span class="dot"></span>{{ r.kategori }}</span><div style="font-size:11px;color:var(--muted);margin-top:3px;">{{ r.skala }} · {{ r.negara }}</div></td>
+            <td><span class="chip-status" style="{% if r.status_terkini=='Aktif' %}background:var(--success-soft);color:var(--success);{% elif r.status_terkini=='Segera Berakhir' %}background:var(--warning-soft);color:var(--warning);{% elif r.status_terkini=='Berakhir' %}background:var(--danger-soft);color:var(--danger);{% else %}background:var(--canvas);color:var(--muted);{% endif %}">{{ r.status_terkini }}</span><div style="font-size:11px;color:var(--muted);margin-top:3px;">{{ r.n_dokumen_aktif }} dokumen aktif</div></td>
+            <td class="mono">{{ r.n_program }}</td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kerjasama.index', tab='mitra', mitra=r.id) }}">Kelola Dokumen</a>
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kerjasama.index', tab='mitra', edit=r.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('kerjasama.hapus_mitra', mid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus mitra {{ r.nama }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada mitra{% if cari or kategori or skala %} yang cocok{% endif %}.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah' if edit_row else 'Tambah' }} Mitra</h2>
+      <form method="post" action="{{ url_for('kerjasama.simpan_mitra') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_row %}<input type="hidden" name="id" value="{{ edit_row.id }}">{% endif %}
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Nama Mitra *</label><input name="nama" value="{{ edit_row.nama if edit_row else '' }}" required></div>
+        <div class="field-compact"><label>Kategori</label>
+          <select name="kategori">{% for k in kategori_mitra_list %}<option value="{{ k }}" {% if edit_row and edit_row.kategori==k %}selected{% endif %}>{{ k }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Skala</label>
+          <select name="skala">{% for s in skala_mitra_list %}<option value="{{ s }}" {% if edit_row and edit_row.skala==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Negara</label><input name="negara" value="{{ edit_row.negara if edit_row else 'Indonesia' }}"></div>
+        <div class="field-compact"><label>Kontak Person</label><input name="kontak_person" value="{{ edit_row.kontak_person if edit_row else '' }}"></div>
+        <div class="field-compact"><label>No. HP</label><input name="no_hp" value="{{ edit_row.no_hp if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Email</label><input name="email" type="email" value="{{ edit_row.email if edit_row else '' }}"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Alamat</label><input name="alamat" value="{{ edit_row.alamat if edit_row else '' }}"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Deskripsi</label><textarea name="deskripsi" rows="2">{{ edit_row.deskripsi if edit_row else '' }}</textarea></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan</label><textarea name="catatan" rows="2">{{ edit_row.catatan if edit_row else '' }}</textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+        {% if edit_row %}<a class="btn-outline btn-block" href="{{ url_for('kerjasama.index', tab='mitra') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if mitra_terpilih %}
+<div class="split" style="margin-top:16px;">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <h2 style="padding:16px 24px 0;">Dokumen — {{ mitra_terpilih.nama }}</h2>
+      <table>
+        <thead><tr><th style="padding-left:24px;">Dokumen</th><th>Periode</th><th>Status</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for d in dokumen_rows %}
+          <tr>
+            <td style="padding-left:24px;"><span class="badge"><span class="dot"></span>{{ d.jenis_dokumen }}</span><div class="nama">{{ d.judul }}</div><div class="card-sub" style="margin:0;">{{ d.nomor_dokumen or '-' }}</div></td>
+            <td style="font-size:12.5px;">{{ d.tgl_mulai or '-' }} s/d {{ d.tgl_berakhir or '-' }}</td>
+            <td><span class="chip-status" style="{% if d.status=='Aktif' %}background:var(--success-soft);color:var(--success);{% elif d.status in ('Berakhir','Dibatalkan') %}background:var(--danger-soft);color:var(--danger);{% else %}background:var(--warning-soft);color:var(--warning);{% endif %}">{{ d.status }}</span></td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              {% if d.file_path %}<a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kerjasama.unduh_dokumen', did=d.id) }}">⬇</a>{% endif %}
+              <form method="post" action="{{ url_for('kerjasama.hapus_dokumen', did=d.id) }}" style="display:inline;" onsubmit="return confirm('Hapus dokumen {{ d.judul }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">Belum ada dokumen untuk mitra ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>Unggah Dokumen</h2>
+      <form method="post" action="{{ url_for('kerjasama.unggah_dokumen') }}" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="mitra_id" value="{{ mitra_terpilih.id }}">
+        <div class="field-compact"><label>Jenis Dokumen</label>
+          <select name="jenis_dokumen">{% for j in jenis_dokumen_mitra_list %}<option value="{{ j }}">{{ j }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Status</label>
+          <select name="status">{% for s in status_dokumen_mitra_list %}<option value="{{ s }}" {% if s=='Aktif' %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Judul</label><input name="judul" placeholder="mis. MoU Kerja Sama Pendidikan"></div>
+        <div class="field-compact"><label>Nomor Dokumen</label><input name="nomor_dokumen"></div>
+        <div class="field-compact"><label>Tgl Mulai</label><input name="tgl_mulai" type="date"></div>
+        <div class="field-compact"><label>Tgl Berakhir</label><input name="tgl_berakhir" type="date"></div>
+        <div class="field-compact"><label>File (opsional)</label><input type="file" name="file_dokumen"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan</label><textarea name="catatan" rows="2"></textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">⬆ Simpan</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% elif tab == 'program' %}
+<div class="card" style="padding:14px 24px;">
+  <div class="filter-chips" style="margin:0;flex-wrap:wrap;">
+    {% for m in mitra_list %}
+    <a class="filter-chip {% if mitra_terpilih and mitra_terpilih.id==m.id %}active{% endif %}" href="{{ url_for('kerjasama.index', tab='program', mitra=m.id) }}">{{ m.nama }}</a>
+    {% else %}
+    <span style="font-size:13px;color:var(--muted);">Belum ada mitra — tambahkan dulu di tab Mitra & Dokumen.</span>
+    {% endfor %}
+  </div>
+</div>
+
+{% if mitra_terpilih %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Program</th><th>PIC</th><th>Terkait</th><th>Status</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for p in program_rows %}
+          <tr>
+            <td style="padding-left:24px;"><span class="badge" style="margin-bottom:4px;"><span class="dot"></span>{{ p.jenis_program }}</span><div class="nama">{{ p.nama_program }}</div></td>
+            <td>{{ p.pic_nama or '-' }}</td>
+            <td style="font-size:12px;color:var(--muted);">{{ p.terkait_judul or '-' }}</td>
+            <td><span class="chip-status" style="{% if p.status=='Selesai' %}background:var(--success-soft);color:var(--success);{% elif p.status=='Dibatalkan' %}background:var(--danger-soft);color:var(--danger);{% else %}background:var(--warning-soft);color:var(--warning);{% endif %}">{{ p.status }}</span>{% if p.skor_kepuasan is not none %}<div style="font-size:11px;color:var(--muted);margin-top:3px;">⭐ {{ p.skor_kepuasan }}%</div>{% endif %}</td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kerjasama.index', tab='evaluasi', mitra=mitra_terpilih.id, program=p.id) }}">Luaran</a>
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kerjasama.index', tab='program', mitra=mitra_terpilih.id, edit=p.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('kerjasama.hapus_program', pid=p.id) }}" style="display:inline;" onsubmit="return confirm('Hapus program {{ p.nama_program }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada program untuk mitra ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah' if edit_row else 'Tambah' }} Program</h2>
+      <form method="post" action="{{ url_for('kerjasama.simpan_program') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_row %}<input type="hidden" name="id" value="{{ edit_row.id }}">{% endif %}
+        <input type="hidden" name="mitra_id" value="{{ mitra_terpilih.id }}">
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Nama Program *</label><input name="nama_program" value="{{ edit_row.nama_program if edit_row else '' }}" required></div>
+        <div class="field-compact"><label>Jenis Program</label>
+          <select name="jenis_program">{% for j in jenis_program_mitra_list %}<option value="{{ j }}" {% if edit_row and edit_row.jenis_program==j %}selected{% endif %}>{{ j }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Status</label>
+          <select name="status">{% for s in status_program_mitra_list %}<option value="{{ s }}" {% if edit_row and edit_row.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>PIC Internal (Dosen)</label>
+          <select name="pic_dosen_id">
+            <option value="">-</option>
+            {% for d in dosen_list %}<option value="{{ d.id }}" {% if edit_row and edit_row.pic_dosen_id==d.id %}selected{% endif %}>{{ d.nama }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Skor Kepuasan (0-100)</label><input name="skor_kepuasan" type="number" min="0" max="100" value="{{ edit_row.skor_kepuasan if edit_row and edit_row.skor_kepuasan is not none else '' }}"></div>
+        <div class="field-compact"><label>Tgl Mulai</label><input name="tgl_mulai" type="date" value="{{ edit_row.tgl_mulai if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Tgl Selesai</label><input name="tgl_selesai" type="date" value="{{ edit_row.tgl_selesai if edit_row else '' }}"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Tautkan ke Penelitian (opsional)</label>
+          <select name="penelitian_id">
+            <option value="">-</option>
+            {% for p in penelitian_list %}<option value="{{ p.id }}" {% if edit_row and edit_row.penelitian_id==p.id %}selected{% endif %}>{{ p.judul }} ({{ p.dosen_nama }})</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Tautkan ke PKM (opsional)</label>
+          <select name="pkm_id">
+            <option value="">-</option>
+            {% for p in pkm_list %}<option value="{{ p.id }}" {% if edit_row and edit_row.pkm_id==p.id %}selected{% endif %}>{{ p.judul }} ({{ p.dosen_nama }})</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Deskripsi</label><textarea name="deskripsi" rows="2">{{ edit_row.deskripsi if edit_row else '' }}</textarea></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan</label><textarea name="catatan" rows="2">{{ edit_row.catatan if edit_row else '' }}</textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan Program</button>
+        {% if edit_row %}<a class="btn-outline btn-block" href="{{ url_for('kerjasama.index', tab='program', mitra=mitra_terpilih.id) }}">Batal</a>{% endif %}
+      </form>
+      <p class="hint">Tautan Penelitian/PKM opsional membuat program ini benar-benar terhubung ke data Modul Tri Dharma, bukan sekadar label.</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% elif tab == 'evaluasi' %}
+<div class="card" style="padding:14px 24px;">
+  <div class="filter-chips" style="margin:0;flex-wrap:wrap;">
+    {% for m in mitra_list %}
+    <a class="filter-chip {% if mitra_terpilih and mitra_terpilih.id==m.id %}active{% endif %}" href="{{ url_for('kerjasama.index', tab='evaluasi', mitra=m.id) }}">{{ m.nama }}</a>
+    {% else %}
+    <span style="font-size:13px;color:var(--muted);">Belum ada mitra — tambahkan dulu di tab Mitra & Dokumen.</span>
+    {% endfor %}
+  </div>
+</div>
+
+{% if mitra_terpilih %}
+<div class="card" style="padding:14px 24px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div class="filter-chips" style="margin:0;flex-wrap:wrap;">
+      {% for p in program_list %}
+      <a class="filter-chip {% if program_terpilih and program_terpilih.id==p.id %}active{% endif %}" href="{{ url_for('kerjasama.index', tab='evaluasi', mitra=mitra_terpilih.id, program=p.id) }}">{{ p.nama_program }}</a>
+      {% else %}
+      <span style="font-size:13px;color:var(--muted);">Belum ada program untuk mitra ini.</span>
+      {% endfor %}
+    </div>
+    {% if rata_kepuasan_mitra is not none %}
+    <span class="badge ok"><span class="dot"></span>Rata-rata kepuasan: {{ rata_kepuasan_mitra }}%</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if program_terpilih %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Luaran</th><th>Jenis</th><th>Jumlah</th><th>Tanggal</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for l in luaran_rows %}
+          <tr>
+            <td style="padding-left:24px;"><div class="nama">{{ l.judul }}</div>{% if l.catatan %}<div class="card-sub" style="margin:0;">{{ l.catatan }}</div>{% endif %}</td>
+            <td><span class="badge"><span class="dot"></span>{{ l.jenis_luaran }}</span></td>
+            <td class="mono">{{ l.jumlah if l.jumlah is not none else '-' }}</td>
+            <td class="mono">{{ l.tanggal or '-' }}</td>
+            <td style="padding-right:24px;text-align:right;">
+              <form method="post" action="{{ url_for('kerjasama.hapus_luaran', lid=l.id) }}" style="display:inline;" onsubmit="return confirm('Hapus luaran {{ l.judul }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada luaran untuk program ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>Tambah Luaran</h2>
+      <form method="post" action="{{ url_for('kerjasama.simpan_luaran') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="mitra_program_id" value="{{ program_terpilih.id }}">
+        <div class="field-compact"><label>Jenis Luaran</label>
+          <select name="jenis_luaran">{% for j in jenis_luaran_kerjasama_list %}<option value="{{ j }}">{{ j }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Jumlah</label><input name="jumlah" type="number" min="0" placeholder="mis. jumlah mahasiswa"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Judul *</label><input name="judul" required></div>
+        <div class="field-compact"><label>Tanggal</label><input name="tanggal" type="date"></div>
+        <div class="field-compact"><label>Referensi ID Luaran Dosen (opsional)</label><input name="luaran_dosen_id" type="number" min="1" placeholder="hindari duplikasi entri publikasi/HKI"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan</label><textarea name="catatan" rows="2"></textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan Luaran</button>
+      </form>
+      <p class="hint">Jika luaran ini sudah tercatat sebagai Publikasi/HKI dosen di Modul SDM/Tri Dharma, isi Referensi ID Luaran Dosen supaya tidak dicatat dua kali.</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+{% endif %}
+{% endblock %}

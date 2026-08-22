@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Identitas & Branding — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div>
+    <h1>Identitas & Branding</h1>
+    <p>Muncul di kop surat, cetak SK, dan judul aplikasi</p>
+  </div>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card" style="max-width:680px;">
+    <h2>Logo Institusi</h2>
+    <p class="card-sub">Tampil di sidebar & kop dokumen cetak (SK, undangan). Format PNG/JPG/SVG.</p>
+    {% if logo_path %}
+      <img src="/pengaturan/logo-preview" style="max-height:70px;margin-bottom:14px;display:block;">
+    {% else %}
+      <div class="logo-upload">🖼️</div>
+    {% endif %}
+    <input type="file" name="logo" accept=".png,.jpg,.jpeg,.svg">
+  </div>
+
+  <div class="card" style="max-width:680px;">
+    <h2>Data Institusi</h2>
+    <p class="card-sub">Kampus, fakultas, dan program studi</p>
+    <div class="form-row">
+      {% for key, label in bidang[:4] %}
+      <div class="field"><label>{{ label }}</label><input name="{{ key }}" value="{{ nilai[key] }}"></div>
+      {% endfor %}
+    </div>
+    <div class="form-row full">
+      {% for key, label in bidang[4:] %}
+      <div class="field"><label>{{ label }}</label><input name="{{ key }}" value="{{ nilai[key] }}"></div>
+      {% endfor %}
+    </div>
+    <button class="btn-primary" type="submit" style="padding:10px 18px;">Simpan Perubahan</button>
+  </div>
+</form>
+{% endblock %}

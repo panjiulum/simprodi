@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="{{ tema_warna or 'indigo' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="{{ 'density-padat' if pref_densitas == 'Padat' else '' }}" data-sidebar-mode="{{ pref_sidebar_mode or 'otomatis' }}">
+{% import "_icons.html" as icons %}
+{# =============================================================================
+   Struktur sidebar hasil restrukturisasi IA (Information Architecture) —
+   lihat docs/RESTRUKTURISASI_SIDEBAR.md untuk analisis lengkap (masalah
+   struktur lama, alasan tiap grup, menu yang digabung/dipindah/diganti
+   nama, dan rekomendasi menu baru). Endpoint yang dipakai tetap 100%
+   endpoint asli SIMPRODI — restrukturisasi ini HANYA menata ulang &
+   mengganti label menu, TIDAK ada fitur yang dihapus maupun logika
+   backend yang diubah.
+   Menu yang belum punya modul backend resmi diarahkan ke roadmap.modul
+   (lihat routes/roadmap.py) alih-alih ditautkan ke halaman kosong.
+
+   Redesain UI/UX (acuan: refferensi_desain_ui_simprodi — sidebar berkategori
+   Lucide-style): ikon emoji diganti ikon garis SVG inline (lihat
+   _icons.html — di-inline, BUKAN CDN, supaya aplikasi tetap 100% offline),
+   setiap item nav sekarang punya kunci ikon eksplisit, dan tiap grup punya
+   satu ikon representatif di header-nya. Struktur data/endpoint/extra-args
+   tidak berubah sama sekali dari versi sebelumnya. #}
+{# 'Kerja Sama' sebelumnya cuma 1 entri generik ke kerjasama.index, padahal
+   halamannya sendiri sudah punya 4 tab (lihat kerjasama.html) — akibatnya
+   grup ini jadi satu-satunya modul multi-halaman yang TIDAK collapsible
+   (lihat aturan `collapsible = items|length > 1` di bawah), beda sendiri
+   dari modul lain yang setara (mis. Tri Dharma/Mutu & Analytics).
+   Dipecah di bawah persis mengikuti pola Tri Dharma: semua tetap menunjuk
+   endpoint yang sama (kerjasama.index), cuma beda parameter query 'tab'
+   — tidak ada endpoint/route baru yang ditambahkan. #}
+{% set nav_groups = [
+  ('Utama', 'dashboard', [
+      ('dashboard.index', 'dashboard', 'Dashboard'),
+  ]),
+  ('Akademik', 'book-open', [
+      ('kurikulum.index', 'book-open', 'Kurikulum & OBE'),
+      ('jadwal.index', 'calendar-days', 'Jadwal Kelas & BAP'),
+      ('nilai.index', 'calculator', 'Nilai & OBE Assessment'),
+      ('kalender.index', 'calendar', 'Kalender Akademik'),
+  ]),
+  ('Mahasiswa', 'users', [
+      ('mahasiswa.list_view', 'users', 'Data Mahasiswa'),
+      ('sp.index', 'sun', 'Semester Pendek'),
+      ('rpl.index', 'puzzle', 'RPL'),
+      ('kelulusan.tracer_list', 'target', 'Tracer Study'),
+  ]),
+  ('Tugas Akhir', 'file-text', [
+      ('akademik.pengajuan_list', 'file-text', 'Pengajuan Judul'),
+      ('akademik.penetapan_list', 'compass', 'Penetapan Pembimbing'),
+      ('pelaksanaan.seminar_list', 'mic', 'Seminar Proposal'),
+      ('pelaksanaan.sidang_list', 'scale', 'Sidang Skripsi'),
+      ('kelulusan.yudisium_list', 'graduation-cap', 'Rencana Yudisium'),
+      ('kelulusan.wisuda_list', 'building', 'Wisuda'),
+  ]),
+  ('SDM', 'user-check', [
+      ('dosen.list_view', 'user-check', 'Data Dosen'),
+      ('sdm.index', 'trending-up', 'SDM & Kinerja Dosen'),
+      ('ruangan.list_view', 'door', 'Aset & Ruangan'),
+  ]),
+  ('Tri Dharma', 'flask', [
+      ('tridharma.index', 'flask', 'Penelitian', {'tab': 'penelitian_pkm', 'jenis': 'Penelitian'}),
+      ('tridharma.index', 'handshake', 'PKM', {'tab': 'penelitian_pkm', 'jenis': 'PKM'}),
+      ('tridharma.index', 'file-text', 'Publikasi & HKI', {'tab': 'luaran'}),
+  ]),
+  ('Kerja Sama', 'handshake', [
+      ('kerjasama.index', 'bar-chart', 'Dashboard', {'tab': 'dashboard'}),
+      ('kerjasama.index', 'building', 'Mitra & Dokumen', {'tab': 'mitra'}),
+      ('kerjasama.index', 'folder', 'Program & Implementasi', {'tab': 'program'}),
+      ('kerjasama.index', 'award', 'Evaluasi & Luaran', {'tab': 'evaluasi'}),
+  ]),
+  ('Mutu & Analytics', 'bar-chart', [
+      ('cqi.index', 'refresh-cw', 'Siklus CQI'),
+      ('mutu.index', 'target', 'IKU', {'tab': 'iku'}),
+      ('mutu.index', 'award', 'Akreditasi', {'tab': 'akreditasi'}),
+      ('mutu.index', 'search', 'Audit & QA', {'tab': 'audit'}),
+      ('rekap.pembimbing', 'clipboard-list', 'Rekap Pembimbing'),
+      ('rekap.status', 'bar-chart', 'Rekap Status'),
+      ('rekap.rasio_dosen', 'trending-up', 'Rasio Beban Dosen'),
+      ('rekap.kinerja_dosen', 'user-check', 'Rekap Kinerja Dosen (SDM)'),
+      ('rekap.program_kerja', 'folder', 'Rekap Program Kerja'),
+      ('rekap.statistik', 'bar-chart', 'Statistik'),
+  ]),
+  ('Operasional', 'folder-open', [
+      ('kegiatan.index', 'folder', 'Program Kerja'),
+      ('dokumen.index', 'folder-open', 'Document Center'),
+      ('rekap.rkp_seminar', 'wallet', 'RKP Seminar'),
+      ('rekap.rkp_sidang', 'wallet', 'RKP Sidang'),
+      ('rekap.honor_keuangan', 'wallet', 'Rekap Honor Keuangan'),
+      ('surat.index', 'printer', 'Cetak Surat Tugas Akhir'),
+      ('surat_umum.index', 'mail', 'Generator Surat Umum'),
+  ]),
+  ('Administrasi', 'settings', [
+      ('pengaturan.pengguna', 'users', 'Manajemen Pengguna'),
+      ('pengaturan.tahun_akademik', 'calendar', 'Tahun Akademik'),
+      ('pengaturan.honor', 'wallet', 'Tarif Honor'),
+      ('pengaturan.branding', 'tag', 'Identitas & Branding'),
+      ('pengaturan.pejabat', 'award', 'Pejabat Struktural'),
+      ('pengaturan.import_export', 'refresh-cw', 'Import & Export Data'),
+      ('pengaturan.import_generik', 'upload', 'Import Data (Dosen/Mahasiswa/SDM)'),
+  ]),
+  ('Pengaturan', 'sliders', [
+      ('panduan.index', 'book-open', 'Panduan Penggunaan'),
+      ('pengaturan.password', 'lock', 'Ubah Username & Password'),
+      ('pengaturan.pin_atur', 'lock', 'PIN Fitur Krusial'),
+      ('mutu.index', 'clipboard-list', 'Log Aktivitas', {'tab': 'log'}),
+      ('preferensi.index', 'sliders', 'Preferensi Tampilan'),
+      ('notifikasi.index', 'bell', 'Pusat Notifikasi'),
+      ('backup.index', 'database', 'Backup & Restore'),
+      ('tema.index', 'palette', 'Tema Tampilan'),
+      ('tentang.index', 'info', 'Tentang Aplikasi'),
+  ]),
+] %}
+
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">
+      {% if logo_path %}
+        <img src="{{ url_for('pengaturan.logo_preview') }}" class="mark" style="object-fit:contain;background:#fff;">
+      {% else %}
+        <div class="mark">{{ (APP_SHORT_NAME or 'S')[0] }}</div>
+      {% endif %}
+      <div class="txt">{{ APP_SHORT_NAME or 'SIMPRODI' }}<small>{{ nama_prodi or 'Program Studi' }}</small></div>
+    </div>
+
+    <div class="sidebar-bulk-toggle">
+      <button type="button" onclick="setAllNavGroups(true)">Buka semua</button>
+      <span class="sep">·</span>
+      <button type="button" onclick="setAllNavGroups(false)">Tutup semua</button>
+    </div>
+
+    <nav class="sidebar-nav">
+    {# Tiap grup di-render sebagai panel expand/collapse (accordion), supaya
+       daftar menu tidak jadi 1 kolom panjang ke bawah. Grup yang sedang
+       berisi halaman aktif otomatis terbuka; grup lain default tertutup.
+       Grup berisi cuma 1 item (mis. "Utama") tidak diberi tombol
+       collapse — tidak ada gunanya melipat 1 baris. #}
+    {% for group_label, group_icon, items in nav_groups %}
+    {% set ns_group = namespace(active=False) %}
+    {% for item in items %}
+      {% set g_endpoint = item[0] %}
+      {% set g_extra = item[3] if item|length > 3 else {} %}
+      {% set ns_i = namespace(active=(request.endpoint == g_endpoint)) %}
+      {% for k, v in g_extra.items() %}
+        {% if (request.view_args or {}).get(k, request.args.get(k)) != v %}{% set ns_i.active = False %}{% endif %}
+      {% endfor %}
+      {% if ns_i.active %}{% set ns_group.active = True %}{% endif %}
+    {% endfor %}
+    {% set collapsible = items|length > 1 %}
+    <div class="nav-group{% if collapsible %} collapsible{% endif %}{% if collapsible and not ns_group.active %} collapsed{% endif %}{% if ns_group.active %} has-active{% endif %}"
+         data-group="{{ group_label }}">
+      <div class="nav-group-label"
+           {% if collapsible %}
+           onclick="toggleNavGroup(this)" role="button" tabindex="0"
+           aria-expanded="{{ 'true' if ns_group.active else 'false' }}"
+           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleNavGroup(this);}"
+           {% endif %}>
+        <span class="lbl">
+          {% if collapsible %}{{ icons.svg(group_icon, 'grp-ic') }}{% endif %}
+          {{ group_label }}
+        </span>
+        {% if collapsible %}<span class="chev">{{ icons.svg('chevron-down', 'chev-ic') }}</span>{% endif %}
+      </div>
+      <div class="nav-group-items">
+        <div class="nav-group-items-inner">
+          {% for item in items %}
+          {% set endpoint = item[0] %}{% set item_icon = item[1] %}{% set label = item[2] %}
+          {% set extra = item[3] if item|length > 3 else {} %}
+          {% set ns = namespace(active=(request.endpoint == endpoint)) %}
+          {% for k, v in extra.items() %}
+            {% if (request.view_args or {}).get(k, request.args.get(k)) != v %}{% set ns.active = False %}{% endif %}
+          {% endfor %}
+          <a class="nav-item {% if ns.active %}active{% endif %}"
+             href="{{ url_for(endpoint, **extra) }}">
+            <span class="ic">{{ icons.svg(item_icon, 'nav-ic') }}</span>
+            <span class="nav-item-txt">{{ label }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    </nav>
+
+    <div class="sidebar-foot">
+      <a href="{{ url_for('auth.logout') }}" class="sidebar-logout">{{ icons.svg('log-out', 'ic') }} Keluar</a>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-inst">
+          <h1>{{ nama_prodi or 'Program Studi' }}</h1>
+          <p>{{ nama_fakultas or APP_NAME }}{% if nama_institusi %} · {{ nama_institusi }}{% endif %}</p>
+        </div>
+        {% if tahun_akademik_aktif %}
+        <div class="topbar-ta">
+          <span class="lbl">Tahun Akademik</span>
+          <span class="v">{{ tahun_akademik_aktif }}</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="topbar-right">
+        <a class="topbar-icon" href="{{ url_for('notifikasi.index') }}" title="Pusat Notifikasi">{{ icons.svg('bell', 'ic') }}
+          {% if notif_ringkasan and notif_ringkasan.perlu_perhatian %}
+          <span class="topbar-icon-badge {{ 'danger' if notif_ringkasan.danger else 'warn' }}">{{ notif_ringkasan.perlu_perhatian if notif_ringkasan.perlu_perhatian < 100 else '99+' }}</span>
+          {% endif %}
+        </a>
+        <a class="topbar-icon" href="{{ url_for('pengaturan.pengguna') }}" title="Pengaturan">{{ icons.svg('settings', 'ic') }}</a>
+        <a class="topbar-user" href="{{ url_for('pengaturan.password') }}">
+          <div class="av">K</div>
+          <div class="meta">
+            <div class="n">Kaprodi</div>
+            <div class="r">Administrator</div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="main-inner">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <div class="flash flash-{{ category }}">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+<script>
+// Sidebar expand/collapse per grup. Status server-side (grup aktif = terbuka,
+// grup lain = tertutup) dipakai sebagai default; pilihan buka/tutup manual
+// pengguna disimpan di localStorage supaya bertahan lintas halaman, KECUALI
+// untuk grup yang sedang aktif (selalu dipaksa terbuka supaya menu halaman
+// yang sedang dibuka tidak pernah tersembunyi tanpa disadari).
+(function(){
+  var STORAGE_KEY = 'simprodi_nav_open_groups';
+  function readPrefs(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+    catch(e){ return {}; }
+  }
+  function writePrefs(prefs){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); } catch(e){}
+  }
+  window.toggleNavGroup = function(labelEl){
+    var group = labelEl.closest('.nav-group');
+    var willOpen = group.classList.contains('collapsed');
+    group.classList.toggle('collapsed', !willOpen);
+    labelEl.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    var prefs = readPrefs();
+    prefs[group.getAttribute('data-group')] = willOpen;
+    writePrefs(prefs);
+  };
+  window.setAllNavGroups = function(open){
+    var prefs = readPrefs();
+    document.querySelectorAll('.nav-group.collapsible').forEach(function(group){
+      group.classList.toggle('collapsed', !open);
+      var label = group.querySelector('.nav-group-label');
+      if (label) label.setAttribute('aria-expanded', open ? 'true' : 'false');
+      prefs[group.getAttribute('data-group')] = open;
+    });
+    writePrefs(prefs);
+  };
+  document.addEventListener('DOMContentLoaded', function(){
+    // Preferensi Tampilan -> Mode Default Grup Sidebar (pengaturan/preferensi.html).
+    // 'buka_semua'/'tutup_semua' menimpa localStorage tiap halaman dimuat (state
+    // tetap tersimpan kalau pengguna klak-klik manual setelahnya); 'otomatis'
+    // (default) memakai perilaku asli: ingat pilihan terakhir per grup.
+    var mode = (document.body.getAttribute('data-sidebar-mode') || 'otomatis');
+    if (mode === 'buka_semua' || mode === 'tutup_semua') {
+      var open = (mode === 'buka_semua');
+      document.querySelectorAll('.nav-group.collapsible').forEach(function(group){
+        var isActiveGroup = !group.classList.contains('collapsed');
+        if (isActiveGroup) return; // grup aktif selalu terbuka
+        group.classList.toggle('collapsed', !open);
+        var label = group.querySelector('.nav-group-label');
+        if (label) label.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      return;
+    }
+    var prefs = readPrefs();
+    document.querySelectorAll('.nav-group.collapsible').forEach(function(group){
+      var name = group.getAttribute('data-group');
+      var isActiveGroup = !group.classList.contains('collapsed');
+      if (isActiveGroup) return; // grup aktif selalu terbuka, abaikan preferensi lama
+      if (Object.prototype.hasOwnProperty.call(prefs, name)) {
+        group.classList.toggle('collapsed', !prefs[name]);
+        var label = group.querySelector('.nav-group-label');
+        if (label) label.setAttribute('aria-expanded', prefs[name] ? 'true' : 'false');
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

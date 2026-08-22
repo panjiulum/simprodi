@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+{% block title %}Semester Pendek — {{ APP_NAME }}{% endblock %}
+{% block content %}
+{% macro periode_chips(active_tab) %}
+<div class="card" style="padding:14px 24px;">
+  <div class="filter-chips" style="margin:0;flex-wrap:wrap;">
+    {% for p in periode_rows %}
+    <a class="filter-chip {% if periode_terpilih and periode_terpilih.id==p.id %}active{% endif %}"
+       href="{{ url_for('sp.index', tab=active_tab, periode=p.id) }}">{{ p.nama }} · {{ p.status }}</a>
+    {% else %}
+    <span style="font-size:13px;color:var(--muted);">Belum ada periode Semester Pendek — tambahkan dulu di tab Periode.</span>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+<div class="eyebrow">Akademik</div>
+<div class="page-head">
+  <div>
+    <h1>☀️ Semester Pendek</h1>
+    <p>Konfigurasi periode, penawaran kelas, pendaftaran, pelaksanaan & penilaian Semester Antara</p>
+  </div>
+</div>
+
+<form class="tab-row">
+  <a class="tab-item {% if tab=='periode' %}active{% endif %}" href="{{ url_for('sp.index', tab='periode') }}">⚙️ Periode</a>
+  <a class="tab-item {% if tab=='kelas' %}active{% endif %}" href="{{ url_for('sp.index', tab='kelas') }}">📚 Penawaran Kelas</a>
+  <a class="tab-item {% if tab=='peserta' %}active{% endif %}" href="{{ url_for('sp.index', tab='peserta') }}">👥 Pendaftaran</a>
+  <a class="tab-item {% if tab=='pertemuan' %}active{% endif %}" href="{{ url_for('sp.index', tab='pertemuan') }}">🗓️ Pelaksanaan</a>
+  <a class="tab-item {% if tab=='nilai' %}active{% endif %}" href="{{ url_for('sp.index', tab='nilai') }}">✅ Penilaian</a>
+</form>
+
+{% if tab == 'periode' %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr>
+          <th style="padding-left:24px;">Periode</th><th>Timeline</th><th>Kelas</th><th>Peserta</th><th>Status</th><th style="padding-right:24px;"></th>
+        </tr></thead>
+        <tbody>
+        {% for r in ringkasan %}
+          <tr>
+            <td style="padding-left:24px;"><div class="nama">{{ r.periode.nama }}</div><div class="card-sub" style="margin:0;">{{ r.periode.tahun_akademik or '-' }}</div></td>
+            <td style="font-size:12.5px;">Daftar: {{ r.periode.tgl_mulai_daftar or '-' }} s/d {{ r.periode.tgl_selesai_daftar or '-' }}<div style="color:var(--muted);">Kuliah: {{ r.periode.tgl_mulai_kuliah or '-' }} s/d {{ r.periode.tgl_selesai_kuliah or '-' }}</div></td>
+            <td class="mono">{{ r.jumlah_kelas }}</td>
+            <td class="mono">{{ r.total_peserta }}</td>
+            <td><span class="badge {{ 'ok' if r.periode.status=='Berjalan' else ('warn' if r.periode.status=='Pendaftaran Dibuka' else '') }}"><span class="dot"></span>{{ r.periode.status }}</span></td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('sp.index', tab='kelas', periode=r.periode.id) }}">Kelola Kelas</a>
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('sp.index', tab='periode', edit=r.periode.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('sp.hapus_periode', pid=r.periode.id) }}" style="display:inline;" onsubmit="return confirm('Hapus periode {{ r.periode.nama }}? Kelas, peserta & pertemuan terkait ikut terhapus.');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Belum ada periode Semester Pendek.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah' if edit_periode else 'Tambah' }} Periode SP</h2>
+      <form method="post" action="{{ url_for('sp.simpan_periode') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_periode %}<input type="hidden" name="id" value="{{ edit_periode.id }}">{% endif %}
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Nama Periode *</label><input name="nama" placeholder="mis. SP Ganjil 2025/2026" value="{{ edit_periode.nama if edit_periode else '' }}" required></div>
+        <div class="field-compact">
+          <label>Periode Akademik (Tahun Ajaran)</label>
+          <select name="periode_akademik_id">
+            <option value="">— pilih periode —</option>
+            {% for p in daftar_periode_akademik %}
+            <option value="{{ p.id }}" {% if edit_periode and edit_periode.periode_akademik_id==p.id %}selected{% endif %}>{{ p.label }}</option>
+            {% endfor %}
+          </select>
+          {% if not daftar_periode_akademik %}<small class="card-sub" style="display:block;margin-top:4px;">Belum ada tahun ajaran dibuka — buka dulu di Pengaturan → Tahun Akademik.</small>
+          {% elif edit_periode and edit_periode.tahun_akademik %}<small class="card-sub" style="display:block;margin-top:4px;">Cache: {{ edit_periode.tahun_akademik }}</small>{% endif %}
+        </div>
+        <div class="field-compact"><label>Status</label>
+          <select name="status">{% for s in status_sp_periode_list %}<option value="{{ s }}" {% if edit_periode and edit_periode.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Mulai Pendaftaran</label><input name="tgl_mulai_daftar" type="date" value="{{ edit_periode.tgl_mulai_daftar if edit_periode else '' }}"></div>
+        <div class="field-compact"><label>Batas Pendaftaran</label><input name="tgl_selesai_daftar" type="date" value="{{ edit_periode.tgl_selesai_daftar if edit_periode else '' }}"></div>
+        <div class="field-compact"><label>Mulai Perkuliahan</label><input name="tgl_mulai_kuliah" type="date" value="{{ edit_periode.tgl_mulai_kuliah if edit_periode else '' }}"></div>
+        <div class="field-compact"><label>Akhir Perkuliahan</label><input name="tgl_selesai_kuliah" type="date" value="{{ edit_periode.tgl_selesai_kuliah if edit_periode else '' }}"></div>
+        <div class="field-compact"><label>Maksimum SKS</label><input name="maks_sks" type="number" min="1" value="{{ edit_periode.maks_sks if edit_periode else 9 }}"></div>
+        <div class="field-compact"><label>Min. Peserta Buka Kelas (default)</label><input name="kuota_min_default" type="number" min="1" value="{{ edit_periode.kuota_min_default if edit_periode else 15 }}"></div>
+        <div class="field-compact"><label>Biaya per SKS (Rp)</label><input name="biaya_per_sks" type="number" step="any" value="{{ edit_periode.biaya_per_sks if edit_periode else 0 }}"></div>
+        <div class="field-compact"><label>Jumlah Pertemuan Rencana</label><input name="jumlah_pertemuan_rencana" type="number" min="1" max="16" value="{{ edit_periode.jumlah_pertemuan_rencana if edit_periode else 8 }}"></div>
+        <div class="field-compact full" style="grid-column:1/-1;display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="hanya_mengulang" name="hanya_mengulang" value="1" {% if not edit_periode or edit_periode.hanya_mengulang %}checked{% endif %}>
+          <label for="hanya_mengulang" style="margin:0;">Hanya untuk mata kuliah mengulang (nilai &lt; C)</label>
+        </div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Keterangan</label><textarea name="keterangan" rows="2">{{ edit_periode.keterangan if edit_periode else '' }}</textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan Periode</button>
+        {% if edit_periode %}<a class="btn-outline btn-block" href="{{ url_for('sp.index', tab='periode') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+
+{% elif tab == 'kelas' %}
+{{ periode_chips('kelas') }}
+{% if periode_terpilih %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Mata Kuliah</th><th>Dosen</th><th>Jadwal</th><th>Peserta</th><th>Status Kelas</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for r in kelas_rows %}
+          <tr>
+            <td style="padding-left:24px;"><span class="nim">{{ r.mk_kode }}</span><div class="nama">{{ r.mk_nama }}</div></td>
+            <td>{{ r.dosen_nama or '-' }}</td>
+            <td style="font-size:12.5px;">{{ r.hari or '-' }}{% if r.jam_mulai %} {{ r.jam_mulai }}-{{ r.jam_selesai }}{% endif %}<div style="color:var(--muted);">{{ r.ruangan_nama or '-' }}</div></td>
+            <td class="mono">{{ r.kapasitas.disetujui }}{% if r.kapasitas.kuota_min %}/{{ r.kapasitas.kuota_min }}min{% endif %}/{{ r.kapasitas.kuota_maks }}</td>
+            <td><span class="chip-status" style="{% if r.kapasitas.label=='Dibuka' %}background:var(--success-soft);color:var(--success);{% elif r.kapasitas.label=='Penuh' %}background:var(--violet-soft);color:var(--violet);{% else %}background:var(--warning-soft);color:var(--warning);{% endif %}">{{ r.kapasitas.label }}</span></td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('sp.index', tab='peserta', kelas=r.id) }}">Peserta</a>
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('sp.index', tab='kelas', periode=periode_terpilih.id, edit=r.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('sp.hapus_kelas', kid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus kelas {{ r.mk_kode }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Belum ada kelas ditawarkan pada periode ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah' if edit_kelas else 'Tawarkan' }} Kelas SP</h2>
+      <form method="post" action="{{ url_for('sp.simpan_kelas') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_kelas %}<input type="hidden" name="id" value="{{ edit_kelas.id }}">{% endif %}
+        <input type="hidden" name="periode_id" value="{{ periode_terpilih.id }}">
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Mata Kuliah *</label>
+          <select name="mata_kuliah_id" required>
+            <option value="">— pilih —</option>
+            {% for m in mk_list %}
+            <option value="{{ m.id }}" {% if edit_kelas and edit_kelas.mata_kuliah_id==m.id %}selected{% endif %}>{{ m.kode }} — {{ m.nama }} ({{ m.sks }} SKS)</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Dosen Pengampu</label>
+          <select name="dosen_id">
+            <option value="">— belum ditentukan —</option>
+            {% for d in dosen_list %}
+            <option value="{{ d.id }}" {% if edit_kelas and edit_kelas.dosen_id==d.id %}selected{% endif %}>{{ d.nama }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Ruangan</label>
+          <select name="ruangan_id">
+            <option value="">-</option>
+            {% for r in ruangan_list %}
+            <option value="{{ r.id }}" {% if edit_kelas and edit_kelas.ruangan_id==r.id %}selected{% endif %}>{{ r.nama }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Kuota Minimum</label><input name="kuota_min" type="number" min="1" value="{{ edit_kelas.kuota_min if edit_kelas else periode_terpilih.kuota_min_default }}"></div>
+        <div class="field-compact"><label>Kuota Maksimum</label><input name="kuota_maks" type="number" min="1" value="{{ edit_kelas.kuota_maks if edit_kelas else 40 }}"></div>
+        <div class="field-compact"><label>Hari</label>
+          <select name="hari">
+            <option value="">-</option>
+            {% for h in hari_list %}
+            <option value="{{ h }}" {% if edit_kelas and edit_kelas.hari==h %}selected{% endif %}>{{ h }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Jam Mulai</label><input name="jam_mulai" type="time" value="{{ edit_kelas.jam_mulai if edit_kelas else '' }}"></div>
+        <div class="field-compact"><label>Jam Selesai</label><input name="jam_selesai" type="time" value="{{ edit_kelas.jam_selesai if edit_kelas else '' }}"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Keterangan</label><input name="keterangan" value="{{ edit_kelas.keterangan if edit_kelas else '' }}"></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan Kelas</button>
+        {% if edit_kelas %}<a class="btn-outline btn-block" href="{{ url_for('sp.index', tab='kelas', periode=periode_terpilih.id) }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% elif tab == 'peserta' %}
+{{ periode_chips('peserta') }}
+<div class="card" style="padding:14px 24px;">
+  <div class="filter-chips" style="margin:0;flex-wrap:wrap;">
+    {% for k in kelas_list %}
+    <a class="filter-chip {% if kelas_terpilih and kelas_terpilih.id==k.id %}active{% endif %}" href="{{ url_for('sp.index', tab='peserta', kelas=k.id) }}">{{ k.mk_kode }} — {{ k.mk_nama }}</a>
+    {% else %}
+    <span style="font-size:13px;color:var(--muted);">Belum ada kelas SP pada periode ini — tambahkan dulu di tab Penawaran Kelas.</span>
+    {% endfor %}
+  </div>
+</div>
+
+{% if kelas_terpilih %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Mahasiswa</th><th>Alasan Mengulang</th><th>Status</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for p in peserta_rows %}
+          <tr>
+            <td style="padding-left:24px;"><span class="nim">{{ p.nim }}</span><div class="nama">{{ p.mhs_nama }}</div></td>
+            <td style="font-size:12.5px;">{{ p.alasan_mengulang or '-' }}{% if p.nilai_sebelumnya %}<div style="color:var(--muted);">Nilai sebelumnya: {{ p.nilai_sebelumnya }}</div>{% endif %}</td>
+            <td><span class="badge {{ 'ok' if p.status_approval=='Disetujui' else ('danger' if p.status_approval=='Ditolak' else 'warn') }}"><span class="dot"></span>{{ p.status_approval }}</span></td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              {% if p.status_approval != 'Disetujui' %}
+              <form method="post" action="{{ url_for('sp.approval_peserta', pid=p.id) }}" style="display:inline;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="status_approval" value="Disetujui">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--success);">Setujui</button>
+              </form>
+              {% endif %}
+              {% if p.status_approval != 'Ditolak' %}
+              <form method="post" action="{{ url_for('sp.approval_peserta', pid=p.id) }}" style="display:inline;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="status_approval" value="Ditolak">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Tolak</button>
+              </form>
+              {% endif %}
+              <form method="post" action="{{ url_for('sp.hapus_peserta', pid=p.id) }}" style="display:inline;" onsubmit="return confirm('Hapus pendaftaran {{ p.mhs_nama }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">Belum ada pendaftar untuk kelas ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>Daftarkan Peserta</h2>
+      <form method="post" action="{{ url_for('sp.tambah_peserta') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="sp_kelas_id" value="{{ kelas_terpilih.id }}">
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Mahasiswa *</label>
+          <select name="mahasiswa_id" required>
+            <option value="">— pilih —</option>
+            {% for m in mahasiswa_belum_daftar %}
+            <option value="{{ m.id }}">{{ m.nim }} — {{ m.nama }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Alasan Mengulang</label><input name="alasan_mengulang" placeholder="mis. nilai C pada semester reguler"></div>
+        <div class="field-compact"><label>Nilai Sebelumnya</label><input name="nilai_sebelumnya" placeholder="mis. C"></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">➕ Daftarkan</button>
+      </form>
+      <p class="hint">Pendaftaran baru berstatus "Menunggu" — validasi kelayakan mengulang dilakukan manual oleh Kaprodi sebelum disetujui.</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% elif tab == 'pertemuan' %}
+{{ periode_chips('pertemuan') }}
+<div class="card" style="padding:14px 24px;">
+  <div class="filter-chips" style="margin:0;flex-wrap:wrap;">
+    {% for k in kelas_list %}
+    <a class="filter-chip {% if kelas_terpilih and kelas_terpilih.id==k.id %}active{% endif %}" href="{{ url_for('sp.index', tab='pertemuan', kelas=k.id) }}">{{ k.mk_kode }} — {{ k.mk_nama }}</a>
+    {% else %}
+    <span style="font-size:13px;color:var(--muted);">Belum ada kelas SP pada periode ini.</span>
+    {% endfor %}
+  </div>
+</div>
+
+{% if kelas_terpilih %}
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Pertemuan Terlaksana</div>
+    <div class="val">{{ realisasi.terlaksana }} / {{ realisasi.rencana }}</div>
+    <div class="delta {% if realisasi.persen < 100 %}warn{% endif %}">{{ realisasi.persen }}% realisasi</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Peserta Disetujui</div>
+    <div class="val">{{ peserta_rows|length }}</div>
+    <div class="delta">wajib hadir ≥ {{ ambang_kehadiran if ambang_kehadiran else 80 }}%</div>
+  </div>
+</div>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Pertemuan</th><th>Tanggal</th><th>Materi</th><th>Status</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for pt in pertemuan_rows %}
+          <tr class="{% if pertemuan_terpilih and pertemuan_terpilih.id==pt.id %}active{% endif %}">
+            <td class="mono" style="padding-left:24px;">{{ pt.pertemuan_ke }}</td>
+            <td class="mono">{{ pt.tanggal or '-' }}</td>
+            <td>{{ pt.materi or '-' }}</td>
+            <td><span class="chip-status" style="{% if pt.status=='Terlaksana' %}background:var(--success-soft);color:var(--success);{% else %}background:var(--warning-soft);color:var(--warning);{% endif %}">{{ pt.status }}</span></td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('sp.index', tab='pertemuan', kelas=kelas_terpilih.id, pertemuan=pt.id) }}">Presensi</a>
+              <form method="post" action="{{ url_for('sp.hapus_pertemuan', mid=pt.id) }}" style="display:inline;" onsubmit="return confirm('Hapus pertemuan ke-{{ pt.pertemuan_ke }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada pertemuan tercatat.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if pertemuan_terpilih %}
+    <div class="card" style="margin-top:16px;">
+      <h2>Presensi Pertemuan ke-{{ pertemuan_terpilih.pertemuan_ke }}</h2>
+      <p class="card-sub">{{ pertemuan_terpilih.tanggal or '-' }} · {{ pertemuan_terpilih.materi or '-' }}</p>
+      <form method="post" action="{{ url_for('sp.simpan_presensi') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="sp_pertemuan_id" value="{{ pertemuan_terpilih.id }}">
+        <input type="hidden" name="sp_kelas_id" value="{{ kelas_terpilih.id }}">
+        {% for p in peserta_rows %}
+        <div class="chk-row">
+          <input type="checkbox" id="hadir_{{ p.id }}" name="hadir_{{ p.id }}" value="1" {% if hadir_map.get(p.id, 1) %}checked{% endif %}>
+          <label for="hadir_{{ p.id }}">{{ p.nim }} — {{ p.mhs_nama }}</label>
+        </div>
+        {% else %}
+        <p style="font-size:13px;color:var(--muted);">Belum ada peserta disetujui di kelas ini.</p>
+        {% endfor %}
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan Presensi</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="split-form">
+    <div class="card">
+      <h2>Catat Pertemuan Baru</h2>
+      <form method="post" action="{{ url_for('sp.simpan_pertemuan') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="sp_kelas_id" value="{{ kelas_terpilih.id }}">
+        <div class="field-compact"><label>Pertemuan Ke *</label><input name="pertemuan_ke" type="number" min="1" value="{{ pertemuan_berikutnya }}" required></div>
+        <div class="field-compact"><label>Tanggal</label><input name="tanggal" type="date"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Materi</label><input name="materi" placeholder="Ringkasan materi pertemuan ini"></div>
+        <div class="field-compact"><label>Status</label>
+          <select name="status">{% for s in status_pertemuan_sp_list %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan</label><input name="catatan"></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:8px;">💾 Simpan Pertemuan</button>
+      </form>
+      <p class="hint">Setelah pertemuan dicatat, buka kembali untuk mengisi presensi per mahasiswa.</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% elif tab == 'nilai' %}
+{{ periode_chips('nilai') }}
+<div class="card" style="padding:14px 24px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div class="filter-chips" style="margin:0;flex-wrap:wrap;">
+      {% for k in kelas_list %}
+      <a class="filter-chip {% if kelas_terpilih and kelas_terpilih.id==k.id %}active{% endif %}" href="{{ url_for('sp.index', tab='nilai', kelas=k.id) }}">{{ k.mk_kode }} — {{ k.mk_nama }}</a>
+      {% else %}
+      <span style="font-size:13px;color:var(--muted);">Belum ada kelas SP pada periode ini.</span>
+      {% endfor %}
+    </div>
+    {% if kelas_terpilih %}
+    <a class="btn-outline" style="padding:6px 14px;font-size:12.5px;" href="{{ url_for('sp.export_nilai', kelas=kelas_terpilih.id) }}">⬇ Export Rekap CSV</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if kelas_terpilih %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr>
+          <th style="padding-left:24px;">Mahasiswa</th><th>Nilai Akhir</th><th>Grade</th><th>Kehadiran</th><th style="padding-right:24px;"></th>
+        </tr></thead>
+        <tbody>
+        {% for p in peserta_rows %}
+          <tr class="{% if peserta_terpilih and peserta_terpilih.id==p.id %}active{% endif %}">
+            <td style="padding-left:24px;"><span class="nim">{{ p.nim }}</span><div class="nama">{{ p.mhs_nama }}</div></td>
+            <td class="mono" style="font-weight:700;">{{ p.nilai_akhir if p.nilai_akhir is not none else '-' }}</td>
+            <td>{% if p.nilai_huruf %}<span class="badge {% if p.nilai_huruf in ('D','E') %}danger{% else %}ok{% endif %}"><span class="dot"></span>{{ p.nilai_huruf }}</span>{% else %}-{% endif %}</td>
+            <td><span class="chip-status" style="{% if p.kehadiran.persen >= ambang_kehadiran %}background:var(--success-soft);color:var(--success);{% else %}background:var(--danger-soft);color:var(--danger);{% endif %}">{{ p.kehadiran.hadir }}/{{ p.kehadiran.total }} ({{ p.kehadiran.persen }}%)</span></td>
+            <td style="padding-right:24px;text-align:right;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('sp.index', tab='nilai', kelas=kelas_terpilih.id, peserta=p.id) }}">Input Nilai</a>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada peserta disetujui di kelas ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    {% if peserta_terpilih %}
+    <div class="card">
+      <h2>Input Nilai — {{ peserta_terpilih.mhs_nama }}</h2>
+      <p class="card-sub">{{ peserta_terpilih.nim }} · kehadiran {{ peserta_terpilih.kehadiran.persen }}%{% if peserta_terpilih.kehadiran.persen < ambang_kehadiran %} (di bawah ambang {{ ambang_kehadiran }}%){% endif %}</p>
+      <form method="post" action="{{ url_for('sp.simpan_nilai') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="id" value="{{ peserta_terpilih.id }}">
+        <input type="hidden" name="sp_kelas_id" value="{{ kelas_terpilih.id }}">
+        <div class="field-compact"><label>Tugas (30%)</label><input name="tugas" type="number" step="any" min="0" max="100" value="{{ peserta_terpilih.tugas if peserta_terpilih.tugas is not none else '' }}"></div>
+        <div class="field-compact"><label>UTS (30%)</label><input name="uts" type="number" step="any" min="0" max="100" value="{{ peserta_terpilih.uts if peserta_terpilih.uts is not none else '' }}"></div>
+        <div class="field-compact"><label>UAS (40%)</label><input name="uas" type="number" step="any" min="0" max="100" value="{{ peserta_terpilih.uas if peserta_terpilih.uas is not none else '' }}"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan</label><textarea name="catatan" rows="2">{{ peserta_terpilih.catatan or '' }}</textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan Nilai</button>
+      </form>
+      <p class="hint">Nilai akhir & grade dihitung otomatis dari bobot Tugas 30% + UTS 30% + UAS 40% setelah ketiganya terisi.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

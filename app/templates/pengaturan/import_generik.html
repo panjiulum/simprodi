@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Import Data — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div><h1>Import Data per Modul</h1><p>Unduh template, isi, lalu unggah ulang kapan saja — aman diulang, data yang sudah ada akan diperbarui (bukan digandakan).</p></div>
+</div>
+
+<div class="card" style="max-width:340px;padding:8px;">
+  <form method="get">
+    <select name="modul" onchange="this.form.submit()" style="width:100%;">
+      {% set ns = namespace(kategori_terakhir=None) %}
+      {% for key, info in importers.items() %}
+        {% if info.kategori and info.kategori != ns.kategori_terakhir %}
+          {% if ns.kategori_terakhir is not none %}</optgroup>{% endif %}
+          <optgroup label="{{ info.kategori }}">
+          {% set ns.kategori_terakhir = info.kategori %}
+        {% endif %}
+      <option value="{{ key }}" {% if modul==key %}selected{% endif %}>{{ info.label }}</option>
+      {% endfor %}
+      {% if ns.kategori_terakhir is not none %}</optgroup>{% endif %}
+    </select>
+  </form>
+</div>
+
+<div class="card" style="max-width:680px;">
+  <h2>1. Unduh Template — {{ importers[modul].label }}</h2>
+  <p class="card-sub">Baris ke-2 berisi contoh pengisian (boleh dihapus). Jangan ubah nama/urutan kolom di baris ke-1.</p>
+  <a class="btn-outline" href="{{ url_for('pengaturan.import_generik_template', modul=modul) }}">⬇ Unduh Template {{ importers[modul].label }}</a>
+</div>
+
+<div class="card" style="max-width:680px;">
+  <h2>2. Unggah File Terisi</h2>
+  <form method="post" action="{{ url_for('pengaturan.import_generik_proses') }}" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="modul" value="{{ modul }}">
+    <div class="field"><label>File Excel (.xlsx)</label><input type="file" name="file_excel" accept=".xlsx" required></div>
+    <button class="btn-primary" type="submit" style="padding:10px 18px;">📥 Proses Import</button>
+  </form>
+
+  {% if hasil %}
+  <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+    <div class="kpi-row">
+      <div class="kpi-box"><div class="v">{{ hasil.tambah }}</div><div class="l">Baru</div></div>
+      <div class="kpi-box"><div class="v">{{ hasil.update }}</div><div class="l">Diperbarui</div></div>
+      <div class="kpi-box"><div class="v">{{ hasil.lewati }}</div><div class="l">Dilewati</div></div>
+    </div>
+    <h2 style="font-size:13px;margin-top:16px;">Detail per Baris</h2>
+    <div style="max-height:320px;overflow-y:auto;">
+    {% for line in hasil.detail %}
+    <div class="list-row"><div class="lt">{{ line }}</div></div>
+    {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

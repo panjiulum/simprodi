@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Generator Surat Umum — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Generator Surat</div>
+<div class="page-head">
+  <div><h1>Generator Surat Umum</h1><p>Surat Tugas, Surat Keterangan, SK, Undangan, Edaran, Nota Dinas, dll — nomor otomatis & tercatat di Buku Agenda Surat Keluar</p></div>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Surat Tahun {{ tahun_ini }}</div>
+    <div class="val">{{ total_tahun_ini }}</div>
+    <div class="delta">nomor urut tahun berjalan</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Total di Buku Agenda</div>
+    <div class="val">{{ total_keseluruhan }}</div>
+    <div class="delta">seluruh jenis surat</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Dibuat Bulan Ini</div>
+    <div class="val">{{ bulan_ini }}</div>
+    <div class="delta">surat baru</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Jenis Terbanyak</div>
+    <div class="val" style="font-size:16px;">{{ jenis_terbanyak or '-' }}</div>
+    <div class="delta">{{ jenis_list|length }} jenis tersedia</div>
+  </div>
+</div>
+
+<div class="card" style="padding:18px 24px;">
+  <div class="filter-chips">
+    <a class="filter-chip {% if not jenis_filter %}active{% endif %}" href="{{ url_for('surat_umum.index', cari=cari or None) }}">Semua</a>
+    {% for j in jenis_list %}
+    <a class="filter-chip {% if jenis_filter==j %}active{% endif %}" href="{{ url_for('surat_umum.index', jenis=j, cari=cari or None) }}">{{ j }}</a>
+    {% endfor %}
+  </div>
+  <form method="get" class="search" style="margin-top:12px;width:auto;display:flex;gap:8px;">
+    {% if jenis_filter %}<input type="hidden" name="jenis" value="{{ jenis_filter }}">{% endif %}
+    <input name="cari" style="flex:1;min-width:200px;" placeholder="Cari nomor, perihal, atau tujuan surat..." value="{{ cari }}">
+    <button class="btn-outline" type="submit">Cari</button>
+    {% if cari or jenis_filter %}<a class="btn-outline" href="{{ url_for('surat_umum.index') }}">Reset</a>{% endif %}
+  </form>
+</div>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <h2 style="padding:14px 24px 0;">📖 Buku Agenda Surat Keluar</h2>
+      <table>
+        <thead><tr>
+          <th style="padding-left:24px;">Nomor</th><th>Jenis</th><th>Perihal</th><th>Tujuan</th><th>Tanggal</th><th style="padding-right:24px;"></th>
+        </tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="mono" style="padding-left:24px;">{{ r.nomor_surat }}</td>
+            <td><span class="badge"><span class="dot"></span>{{ r.jenis_surat }}</span></td>
+            <td class="nama">{{ r.perihal }}</td>
+            <td>{{ r.tujuan or '-' }}</td>
+            <td class="mono">{{ r.tanggal_surat }}</td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('surat_umum.unduh', sid=r.id) }}">⬇ Unduh</a>
+              <form method="post" action="{{ url_for('surat_umum.hapus', sid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus catatan surat {{ r.nomor_surat }} dari Buku Agenda?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Belum ada surat keluar{% if cari or jenis_filter %} yang cocok{% endif %}.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="split-form">
+    <div class="card">
+      <h2>✉️ Buat Surat Baru</h2>
+      <p class="card-sub">Nomor surat, kop, dan blok tanda tangan dibuat otomatis</p>
+      <form method="post" action="{{ url_for('surat_umum.buat') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field-compact"><label>Jenis Surat *</label>
+          <select name="jenis_surat" required>
+            <option value="">— Pilih —</option>
+            {% for j in jenis_list %}<option value="{{ j }}">{{ j }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Perihal *</label><input name="perihal" required placeholder="mis. Penugasan sebagai Panitia Ujian"></div>
+        <div class="field-compact"><label>Kepada Yth. / Tujuan</label><textarea name="tujuan" rows="2" placeholder="mis. Seluruh Dosen Program Studi"></textarea></div>
+        <div class="field-compact"><label>Tanggal Surat</label><input type="date" name="tanggal_surat" value="{{ today }}"></div>
+        <div class="field-compact">
+          <label>Isi Surat</label>
+          <textarea name="isi" rows="8" placeholder="Ketik isi surat. Pisahkan antar-paragraf dengan baris kosong."></textarea>
+          <div class="hint">Kalimat pembuka baku sesuai jenis surat akan ditambahkan otomatis sebelum isi ini.</div>
+        </div>
+        <div class="field-compact"><label>Penandatangan</label><input name="penandatangan" value="{{ nama_default }}"></div>
+        <div class="field-compact"><label>Jabatan Penandatangan</label><input name="jabatan_penandatangan" value="{{ jabatan_default }}"></div>
+        <div class="field-compact"><label>Tembusan (1 baris = 1 tujuan)</label><textarea name="tembusan" rows="2"></textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">🖨️ Buat & Unduh Surat</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

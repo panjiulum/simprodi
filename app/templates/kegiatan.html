@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Kegiatan & Program Kerja — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Kegiatan & Program Kerja Prodi</div>
+<div class="page-head">
+  <div><h1>Kegiatan & Program Kerja</h1><p>Rencana program kerja tahunan & realisasi pelaksanaan kegiatan</p></div>
+</div>
+
+<form class="tab-row">
+  <a class="tab-item {% if tab=='proker' %}active{% endif %}" href="{{ url_for('kegiatan.index', tab='proker') }}">📋 Program Kerja</a>
+  <a class="tab-item {% if tab=='kegiatan' %}active{% endif %}" href="{{ url_for('kegiatan.index', tab='kegiatan') }}">🗓️ Kegiatan & Pelaksanaan</a>
+</form>
+
+{% if tab == 'proker' %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:18px 0 6px;">
+      <form class="filter-chips" method="get" style="padding:0 24px 12px;margin:0;">
+        <input type="hidden" name="tab" value="proker">
+        <a class="filter-chip {% if not tahun_filter %}active{% endif %}" href="{{ url_for('kegiatan.index', tab='proker') }}">Semua Tahun</a>
+        {% for t in tahun_list %}
+        <a class="filter-chip {% if tahun_filter==t %}active{% endif %}" href="{{ url_for('kegiatan.index', tab='proker', tahun_akademik=t) }}">{{ t }}</a>
+        {% endfor %}
+      </form>
+      <table>
+        <thead><tr>
+          <th style="padding-left:24px;">Program</th><th>Bidang</th><th>Tahun</th><th>Target</th><th>Realisasi</th><th>Status</th><th style="padding-right:24px;"></th>
+        </tr></thead>
+        <tbody>
+        {% for r in proker_ringkasan %}
+          <tr>
+            <td class="nama" style="padding-left:24px;">{{ r.row.nama_program }}<div class="card-sub" style="margin:0;">PJ: {{ r.row.penanggung_jawab or '-' }}</div></td>
+            <td>{{ r.row.bidang or '-' }}</td>
+            <td class="mono">{{ r.row.tahun_akademik or '-' }}</td>
+            <td>{{ r.row.target or '-' }} {{ r.row.satuan or '' }}</td>
+            <td><span class="badge {{ 'ok' if r.persen>=100 else ('warn' if r.persen>0 else '') }}"><span class="dot"></span>{{ r.selesai }}/{{ r.total }} kegiatan ({{ r.persen }}%)</span></td>
+            <td>{{ r.row.status }}</td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kegiatan.index', tab='proker', edit=r.row.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('kegiatan.hapus_proker', pid=r.row.id) }}" style="display:inline;" onsubmit="return confirm('Hapus program {{ r.row.nama_program }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;">Belum ada program kerja.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah' if edit_proker else 'Tambah' }} Program Kerja</h2>
+      <form method="post" action="{{ url_for('kegiatan.simpan_proker') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_proker %}<input type="hidden" name="id" value="{{ edit_proker.id }}">{% endif %}
+        <div class="field-compact"><label>Periode Akademik</label>
+          <select name="periode_akademik_id">
+            <option value="">— pilih periode —</option>
+            {% for p in daftar_periode %}
+            <option value="{{ p.id }}" {% if edit_proker and edit_proker.periode_akademik_id==p.id %}selected{% endif %}>{{ p.label }}</option>
+            {% endfor %}
+          </select>
+          {% if not daftar_periode %}<small class="card-sub" style="display:block;margin-top:4px;">Belum ada tahun ajaran dibuka — buka dulu di Pengaturan → Tahun Akademik.</small>{% endif %}
+        </div>
+        <div class="field-compact"><label>Bidang</label>
+          <select name="bidang">{% for b in bidang_list %}<option value="{{ b }}" {% if edit_proker and edit_proker.bidang==b %}selected{% endif %}>{{ b }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Nama Program *</label><input name="nama_program" value="{{ edit_proker.nama_program if edit_proker else '' }}" required></div>
+        <div class="field-compact"><label>Indikator Kinerja</label><input name="indikator_kinerja" value="{{ edit_proker.indikator_kinerja if edit_proker else '' }}"></div>
+        <div class="field-compact"><label>Target</label><input name="target" value="{{ edit_proker.target if edit_proker else '' }}"></div>
+        <div class="field-compact"><label>Satuan</label><input name="satuan" placeholder="kegiatan / dokumen / %" value="{{ edit_proker.satuan if edit_proker else '' }}"></div>
+        <div class="field-compact"><label>Anggaran Rencana (Rp)</label><input type="number" step="any" name="anggaran_rencana" value="{{ edit_proker.anggaran_rencana if edit_proker else '' }}"></div>
+        <div class="field-compact"><label>Penanggung Jawab</label><input name="penanggung_jawab" value="{{ edit_proker.penanggung_jawab if edit_proker else '' }}"></div>
+        <div class="field-compact"><label>Status</label>
+          <select name="status">{% for s in status_proker_list %}<option value="{{ s }}" {% if edit_proker and edit_proker.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Catatan</label><textarea name="catatan" rows="2">{{ edit_proker.catatan if edit_proker else '' }}</textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+        {% if edit_proker %}<a class="btn-outline btn-block" href="{{ url_for('kegiatan.index', tab='proker') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:18px 0 6px;">
+      <table>
+        <thead><tr>
+          <th style="padding-left:24px;">Kegiatan</th><th>Program Terkait</th><th>Tanggal</th><th>Kategori</th><th>Status</th><th style="padding-right:24px;"></th>
+        </tr></thead>
+        <tbody>
+        {% for k in kegiatan_rows %}
+          <tr>
+            <td class="nama" style="padding-left:24px;">{{ k.nama_kegiatan }}<div class="card-sub" style="margin:0;">{{ k.lokasi or '-' }}</div></td>
+            <td>{{ k.nama_program or '-' }}</td>
+            <td class="mono">{{ k.tgl_mulai or '-' }}{% if k.tgl_selesai %} s/d {{ k.tgl_selesai }}{% endif %}</td>
+            <td>{{ k.kategori or '-' }}</td>
+            <td><span class="badge {{ 'ok' if k.status=='Selesai' else ('danger' if k.status=='Batal' else 'warn') }}"><span class="dot"></span>{{ k.status }}</span></td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kegiatan.index', tab='kegiatan', edit=k.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('kegiatan.hapus_kegiatan', kid=k.id) }}" style="display:inline;" onsubmit="return confirm('Hapus kegiatan {{ k.nama_kegiatan }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Belum ada kegiatan.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah' if edit_kegiatan else 'Tambah' }} Kegiatan</h2>
+      <form method="post" action="{{ url_for('kegiatan.simpan_kegiatan') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_kegiatan %}<input type="hidden" name="id" value="{{ edit_kegiatan.id }}">{% endif %}
+        <div class="field-compact"><label>Program Kerja Terkait (opsional)</label>
+          <select name="program_kerja_id">
+            <option value="">— Tidak terkait —</option>
+            {% for p in daftar_proker_dropdown %}
+            <option value="{{ p.id }}" {% if edit_kegiatan and edit_kegiatan.program_kerja_id==p.id %}selected{% endif %}>{{ p.nama_program }} ({{ p.tahun_akademik or '-' }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Nama Kegiatan *</label><input name="nama_kegiatan" value="{{ edit_kegiatan.nama_kegiatan if edit_kegiatan else '' }}" required></div>
+        <div class="field-compact"><label>Kategori</label>
+          <select name="kategori">{% for k in kategori_kegiatan_list %}<option value="{{ k }}" {% if edit_kegiatan and edit_kegiatan.kategori==k %}selected{% endif %}>{{ k }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Tanggal Mulai</label><input name="tgl_mulai" placeholder="2026-08-15" value="{{ edit_kegiatan.tgl_mulai if edit_kegiatan else '' }}"></div>
+        <div class="field-compact"><label>Tanggal Selesai</label><input name="tgl_selesai" placeholder="2026-08-15" value="{{ edit_kegiatan.tgl_selesai if edit_kegiatan else '' }}"></div>
+        <div class="field-compact"><label>Lokasi</label><input name="lokasi" value="{{ edit_kegiatan.lokasi if edit_kegiatan else '' }}"></div>
+        <div class="field-compact"><label>Penanggung Jawab</label><input name="penanggung_jawab" value="{{ edit_kegiatan.penanggung_jawab if edit_kegiatan else '' }}"></div>
+        <div class="field-compact"><label>Jumlah Peserta</label><input name="jumlah_peserta" value="{{ edit_kegiatan.jumlah_peserta if edit_kegiatan else '' }}"></div>
+        <div class="field-compact"><label>Anggaran Realisasi (Rp)</label><input type="number" step="any" name="anggaran_realisasi" value="{{ edit_kegiatan.anggaran_realisasi if edit_kegiatan else '' }}"></div>
+        <div class="field-compact"><label>Sumber Dana</label><input name="sumber_dana" value="{{ edit_kegiatan.sumber_dana if edit_kegiatan else '' }}"></div>
+        <div class="field-compact"><label>Status</label>
+          <select name="status">{% for s in status_kegiatan_list %}<option value="{{ s }}" {% if edit_kegiatan and edit_kegiatan.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Lokasi Bukti/Dokumentasi</label><input name="lokasi_bukti" value="{{ edit_kegiatan.lokasi_bukti if edit_kegiatan else '' }}"></div>
+        <div class="field-compact"><label>Catatan</label><textarea name="catatan" rows="2">{{ edit_kegiatan.catatan if edit_kegiatan else '' }}</textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+        {% if edit_kegiatan %}<a class="btn-outline btn-block" href="{{ url_for('kegiatan.index', tab='kegiatan') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

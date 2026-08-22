@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Data Dosen — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Data Master</div>
+<div class="page-head">
+  <div><h1>Data Dosen</h1><p>{{ rows|length }} dosen</p></div>
+</div>
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:18px 0 6px;">
+      <form method="get" class="toolbar" style="padding:0 24px;gap:8px;">
+        <input class="search" type="text" name="q" value="{{ q }}" placeholder="Cari nama atau NIDN…">
+        <select name="homebase" onchange="this.form.submit()">
+          <option value="">Semua Status Homebase</option>
+          {% for h in STATUS_HOMEBASE_LIST %}<option value="{{ h }}" {% if homebase_filter==h %}selected{% endif %}>{{ h }}</option>{% endfor %}
+        </select>
+      </form>
+      <table>
+        <thead><tr><th style="padding-left:24px;">NIDN</th><th>NIK</th><th>Nama</th><th>No HP</th><th>Homebase</th><th>Status</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="mono" style="padding-left:24px;">{{ r.nidn }}</td>
+            <td class="mono">{{ r.nik }}</td>
+            <td class="nama">{{ r.nama }}</td>
+            <td class="mono">{{ r.no_hp }}</td>
+            <td><span class="badge {{ 'ok' if r.status_homebase == 'Homebase' or not r.status_homebase else '' }}">{{ r.status_homebase or 'Homebase' }}</span></td>
+            <td><span class="badge {{ 'ok' if r.status_kepegawaian == 'Aktif' or not r.status_kepegawaian else '' }}"><span class="dot"></span>{{ r.status_kepegawaian or ('Aktif' if r.aktif else 'Nonaktif') }}</span></td>
+            <td style="padding-right:24px;text-align:right;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('sdm.detail', dosen_id=r.id) }}">Kinerja</a>
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('dosen.list_view', edit=r.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('dosen.hapus', did=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus dosen {{ r.nama }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;">Belum ada data dosen.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah Dosen' if edit_row else 'Tambah Dosen' }}</h2>
+      <form method="post" action="{{ url_for('dosen.simpan') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_row %}<input type="hidden" name="id" value="{{ edit_row.id }}">{% endif %}
+        <div class="field-compact"><label>NIDN</label><input name="nidn" value="{{ edit_row.nidn if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Nama *</label><input name="nama" value="{{ edit_row.nama if edit_row else '' }}" required></div>
+        <div class="field-compact"><label>No. HP</label><input name="no_hp" value="{{ edit_row.no_hp if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Email</label><input name="email" value="{{ edit_row.email if edit_row else '' }}"></div>
+        <div class="field-compact"><label>NIK</label><input name="nik" maxlength="16" pattern="[0-9]*" inputmode="numeric" placeholder="16 digit sesuai KTP" value="{{ edit_row.nik if edit_row else '' }}"></div>
+        <div class="field-compact"><label>NUPTK</label><input name="nuptk" maxlength="16" pattern="[0-9]*" inputmode="numeric" placeholder="16 digit, sesuai data SISTER" value="{{ edit_row.nuptk if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Jabatan Fungsional</label><input name="jabatan_fungsional" value="{{ edit_row.jabatan_fungsional if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Pendidikan Terakhir</label><input name="pendidikan_terakhir" value="{{ edit_row.pendidikan_terakhir if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Bidang Keahlian</label><input name="bidang_keahlian" value="{{ edit_row.bidang_keahlian if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Status Homebase *</label>
+          <select name="status_homebase">
+            {% for h in STATUS_HOMEBASE_LIST %}<option value="{{ h }}" {% if edit_row and edit_row.status_homebase==h %}selected{% elif not edit_row and h=='Homebase' %}selected{% endif %}>{{ h }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Unit Asal (jika dosen luar)</label><input name="unit_asal" value="{{ edit_row.unit_asal if edit_row else '' }}" placeholder="Nama prodi/fakultas asal"></div>
+        <div class="field-compact"><label>Prodi Homebase Resmi</label><input name="prodi_homebase" value="{{ edit_row.prodi_homebase if edit_row else '' }}" placeholder="Untuk cross-check PDDIKTI"></div>
+        <div class="field-compact"><label>No. SK Penugasan (dosen luar)</label><input name="sk_penugasan" value="{{ edit_row.sk_penugasan if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Status Kepegawaian *</label>
+          <select name="status_kepegawaian">
+            {% for s in STATUS_KEPEGAWAIAN_DOSEN_LIST %}<option value="{{ s }}" {% if edit_row and edit_row.status_kepegawaian==s %}selected{% elif not edit_row and s=='Aktif' %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+          <div class="hint">Dosen Nonaktif/Pindah/Pensiun otomatis tidak muncul lagi di daftar pilihan dosen baru (jadwal, pembimbing, penguji) — riwayat lamanya tetap tersimpan utuh.</div>
+        </div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+        {% if edit_row %}<a class="btn-outline btn-block" href="{{ url_for('dosen.list_view') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

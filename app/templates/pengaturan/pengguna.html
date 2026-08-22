@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Manajemen Pengguna — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div>
+    <h1>Manajemen Pengguna</h1>
+    <p>Saat ini sistem berjalan dengan {{ rows|length }} akun</p>
+  </div>
+</div>
+
+<div class="card" style="max-width:760px;">
+  <h2>Tambah Pengguna</h2>
+  <p class="card-sub">Fondasi untuk mode multi-pengguna ke depan — saat ini login aplikasi tetap memakai 1 password bersama</p>
+  <form method="post" action="{{ url_for('pengaturan.pengguna_tambah') }}" style="display:flex;gap:10px;align-items:flex-end;max-width:520px;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field" style="flex:1;margin-bottom:0;"><label>Nama</label><input name="nama" required></div>
+    <div class="field" style="flex:1;margin-bottom:0;">
+      <label>Peran</label>
+      <select name="peran">
+        <option>Administrator</option>
+        <option>Operator</option>
+      </select>
+    </div>
+    <button class="btn-primary" type="submit" style="padding:10px 16px;">Tambah</button>
+  </form>
+</div>
+
+<div class="card" style="padding:8px 0 0;max-width:760px;">
+  <table>
+    <thead><tr><th style="padding-left:24px;">Nama</th><th>Peran</th><th>Status</th><th style="padding-right:24px;">Dibuat</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="nama" style="padding-left:24px;">{{ r.nama }}</td>
+        <td><span class="role-pill">{{ r.peran }}</span></td>
+        <td><span class="badge {{ 'ok' if r.aktif else '' }}"><span class="dot"></span>{{ 'Aktif' if r.aktif else 'Nonaktif' }}</span></td>
+        <td class="mono" style="padding-right:24px;">{{ r.dibuat_pada }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

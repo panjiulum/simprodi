@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Pusat Notifikasi — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div><h1>Pusat Notifikasi</h1><p>Seluruh reminder & peringatan lintas modul, dikumpulkan di satu tempat</p></div>
+</div>
+
+<div class="notif-summary">
+  <div class="notif-summary-item">
+    <div class="n">{{ ringkasan.total }}</div><div class="l">Total item</div>
+  </div>
+  <div class="notif-summary-item danger">
+    <div class="n">{{ ringkasan.danger }}</div><div class="l">Sudah lewat / kadaluarsa</div>
+  </div>
+  <div class="notif-summary-item warn">
+    <div class="n">{{ ringkasan.warning }}</div><div class="l">Segera jatuh tempo</div>
+  </div>
+</div>
+
+<div class="card" style="padding:18px 0 6px;">
+  <div style="padding:0 24px 14px;">
+    <form class="filter-chips" method="get" style="margin:0 0 8px;flex-wrap:wrap;">
+      <a class="filter-chip {% if not level_filter %}active{% endif %}" href="{{ url_for('notifikasi.index', kategori=kategori_filter) }}">Semua Level</a>
+      <a class="filter-chip {% if level_filter=='danger' %}active{% endif %}" href="{{ url_for('notifikasi.index', kategori=kategori_filter, level='danger') }}">Lewat Tenggat</a>
+      <a class="filter-chip {% if level_filter=='warning' %}active{% endif %}" href="{{ url_for('notifikasi.index', kategori=kategori_filter, level='warning') }}">Segera</a>
+      <a class="filter-chip {% if level_filter=='info' %}active{% endif %}" href="{{ url_for('notifikasi.index', kategori=kategori_filter, level='info') }}">Info</a>
+    </form>
+    <form class="filter-chips" method="get" style="margin:0;flex-wrap:wrap;">
+      <input type="hidden" name="level" value="{{ level_filter }}">
+      <a class="filter-chip {% if not kategori_filter %}active{% endif %}" href="{{ url_for('notifikasi.index', level=level_filter) }}">Semua Kategori</a>
+      {% for k in kategori_list %}
+      <a class="filter-chip {% if kategori_filter==k %}active{% endif %}" href="{{ url_for('notifikasi.index', level=level_filter, kategori=k) }}">{{ k }}</a>
+      {% endfor %}
+    </form>
+  </div>
+
+  <div style="padding:4px 24px 18px;">
+  {% for item in tampil %}
+    <div class="list-row">
+      <div class="lt">
+        {{ item.judul }}
+        <small>{{ item.kategori }} · {{ item.detail }}</small>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="badge {% if item.level == 'danger' %}danger{% elif item.level == 'warning' %}warn{% elif item.level == 'ok' %}ok{% else %}info{% endif %}"><span class="dot"></span>{{ item.level }}</span>
+        {% if item.url %}<a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ item.url }}">Buka</a>{% endif %}
+      </div>
+    </div>
+  {% else %}
+    <div style="text-align:center;color:var(--muted);padding:24px;">Tidak ada notifikasi untuk filter ini.</div>
+  {% endfor %}
+  </div>
+</div>
+
+<form method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="card" style="max-width:760px;">
+  <h2>Ambang Hari per Kategori</h2>
+  <p class="card-sub">Berapa hari sebelum tenggat/kadaluarsa sebuah item mulai ditampilkan sebagai peringatan "Segera". Berlaku untuk daftar di atas maupun kartu ringkasan di Dashboard.</p>
+  <div class="form-row full">
+    {% for key, label, default in NOTIF_AMBANG_FIELDS %}
+    <div class="field">
+      <label>{{ label }}</label>
+      <input type="number" min="1" max="365" name="{{ key }}" value="{{ ambang_nilai[key] }}">
+    </div>
+    {% endfor %}
+  </div>
+  <button class="btn-primary" type="submit" style="padding:10px 18px;">Simpan Ambang</button>
+</div>
+</form>
+{% endblock %}

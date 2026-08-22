@@ -1,0 +1,5 @@
+<form method="get" class="tab-row">
+  {% for t in tahap_opsi %}
+  <a class="tab-item {% if tahap==t %}active{% endif %}" href="?tahap={{ t }}">{{ t }}</a>
+  {% endfor %}
+</form>

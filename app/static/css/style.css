@@ -1,0 +1,461 @@
+:root{
+  /* Palet dasar dipertahankan (indigo brand identity, sistem tema di bawah) —
+     token baru ditambahkan untuk redesain: radius bertingkat & shadow tipis
+     supaya kartu/tombol terasa lebih modern tanpa mengubah kontras warna
+     yang sudah teruji keterbacaannya di seluruh tabel & form. */
+  --primary:#5352D0; --primary-dark:#2C2B63; --primary-soft:#EEEEFC;
+  --ink:#12172B; --body-text:#475069; --muted:#8891A8;
+  --surface:#FFFFFF; --canvas:#F6F7FB; --border:#E5E8F1; --border-soft:#EEF0F6;
+  --success:#12805C; --success-soft:#E7F6F0;
+  --warning:#B4740E; --warning-soft:#FBF1DF;
+  --danger:#C4342F; --danger-soft:#FBEAE9;
+  --violet:#6D3FC0; --violet-soft:#F1EBFB;
+  --radius-sm:8px; --radius:12px; --radius-lg:16px;
+  --shadow-xs:0 1px 2px rgba(18,23,43,.05);
+  --shadow-sm:0 1px 3px rgba(18,23,43,.06), 0 1px 2px rgba(18,23,43,.04);
+  --shadow-md:0 10px 24px -12px rgba(18,23,43,.16);
+  --shadow-pop:0 20px 44px -20px rgba(18,23,43,.22);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{font-family:'Inter',sans-serif;background:var(--canvas);color:var(--body-text);-webkit-font-smoothing:antialiased;}
+h1,h2,h3,.brand,.nav-group-label,.nav-item{font-family:'Plus Jakarta Sans',sans-serif;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+a{color:inherit;}
+::selection{background:var(--primary-soft);color:var(--primary-dark);}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#D8DCE9;border-radius:99px;border:2.5px solid var(--canvas);}
+.sidebar::-webkit-scrollbar-thumb{border-color:var(--surface);}
+
+/* =====================================================================
+   Halaman Login — diadaptasi dari tata letak dua-panel Login.tsx SITIPRO,
+   tapi disesuaikan dengan sistem SIMPRODI sesungguhnya:
+   - Palet warna indigo SIMPRODI sendiri (bukan oranye SITIPRO)
+   - Satu password admin bersama (bukan username+password) sesuai
+     auth_core.py/routes/auth.py yang sudah ada
+   - Tanpa splash screen langkah palsu ("Loading AI Engine" dsb) dan tanpa
+     tombol "Windows Hello" (API khusus Windows, tidak relevan utk web app
+     lintas platform) — konsisten dgn prinsip tidak menampilkan elemen
+     dekoratif/AI-generated yang tidak sungguhan di seluruh SIMPRODI
+   ===================================================================== */
+.login-page{min-height:100vh;display:flex;flex-direction:column;}
+.login-body{flex:1;display:flex;}
+.login-left{flex:1.15;display:none;position:relative;overflow:hidden;flex-direction:column;
+  justify-content:space-between;padding:56px 60px;color:#fff;
+  background:linear-gradient(135deg, var(--primary-dark), var(--primary));}
+.login-left::before{content:"";position:absolute;inset:0;opacity:.10;pointer-events:none;
+  background-image:radial-gradient(circle at 2px 2px, rgba(255,255,255,.8) 1px, transparent 0);
+  background-size:28px 28px;}
+@media (min-width:960px){.login-left{display:flex;}}
+.login-left-brand{position:relative;z-index:1;display:flex;align-items:flex-start;gap:16px;}
+.login-left-brand .mark{width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,.14);
+  display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;}
+.login-left-brand .mark img{width:100%;height:100%;object-fit:contain;border-radius:14px;background:#fff;}
+.login-left-brand .mark svg{width:26px;height:26px;stroke-width:1.5;}
+.login-left-brand h1{font-size:26px;font-weight:700;margin:0 0 2px;letter-spacing:-.01em;}
+.login-left-brand p{margin:0;font-size:14px;color:rgba(255,255,255,.78);line-height:1.4;}
+.login-left-mid{position:relative;z-index:1;max-width:480px;}
+.login-left-mid h2{font-size:28px;line-height:1.28;font-weight:700;margin:0 0 14px;color:#fff;}
+.login-left-mid .rule{width:52px;height:4px;border-radius:99px;background:rgba(255,255,255,.55);margin-bottom:18px;}
+.login-left-mid p{font-size:14.5px;line-height:1.6;color:rgba(255,255,255,.82);margin:0 0 26px;}
+.login-features{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.login-features .f{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.09);
+  border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:10px 12px;font-size:12.5px;
+  font-weight:500;color:#fff;}
+.login-features .f svg{width:15px;height:15px;stroke-width:1.6;flex-shrink:0;opacity:.85;}
+.login-left-foot{position:relative;z-index:1;display:flex;align-items:center;gap:8px;
+  font-size:12.5px;color:rgba(255,255,255,.72);}
+.login-left-foot svg{width:13px;height:13px;stroke-width:1.6;flex-shrink:0;}
+
+.login-right{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 20px;
+  background:var(--canvas);}
+.login-card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:38px 34px;box-shadow:var(--shadow-pop);}
+.login-card-head{text-align:center;margin-bottom:26px;}
+.login-mark{width:52px;height:52px;border-radius:14px;background:var(--primary);display:flex;
+  align-items:center;justify-content:center;color:#fff;font-size:24px;margin:0 auto 16px;}
+.login-mark img{width:100%;height:100%;object-fit:contain;border-radius:14px;background:#fff;}
+.login-mark svg{width:24px;height:24px;stroke-width:1.5;}
+.login-card h1{font-size:19px;color:var(--ink);margin:0 0 4px;font-weight:700;}
+.login-card p.sub{margin:0;font-size:13px;color:var(--muted);}
+
+.field-icon{position:relative;}
+.field-icon .fi{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);
+  pointer-events:none;font-size:14px;display:flex;}
+.field-icon .fi svg{width:15px;height:15px;stroke-width:1.6;}
+.field-icon input{padding-left:38px !important;}
+.field-icon.has-toggle input{padding-right:40px !important;}
+.pw-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:none;
+  cursor:pointer;color:var(--muted);font-size:13px;padding:6px;line-height:1;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;}
+.pw-toggle svg{width:16px;height:16px;stroke-width:1.6;}
+.pw-toggle:hover{color:var(--body-text);}
+.capslock-warn{margin-top:6px;font-size:11.5px;color:var(--warning);font-weight:600;
+  display:flex;align-items:center;gap:5px;}
+.capslock-warn svg{width:13px;height:13px;stroke-width:1.8;flex-shrink:0;}
+
+.login-submit{display:flex;align-items:center;justify-content:center;gap:8px;}
+.login-spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+  border-radius:50%;animation:login-spin .7s linear infinite;}
+@keyframes login-spin{to{transform:rotate(360deg);}}
+
+.login-foot{margin-top:22px;display:flex;align-items:center;justify-content:center;gap:6px;
+  font-size:11.5px;color:var(--muted);}
+.login-foot svg{width:12px;height:12px;stroke-width:1.6;flex-shrink:0;}
+.login-copyright{text-align:center;padding:16px 20px;font-size:11.5px;color:var(--muted);
+  border-top:1px solid var(--border);background:var(--surface);}
+
+
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--body-text);margin-bottom:6px;}
+.field input, .field select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-size:14px;font-family:'Inter',sans-serif;color:var(--ink);background:#fff;transition:border-color .12s ease, box-shadow .12s ease;}
+.field input:focus, .field select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft);}
+select{padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'Inter',sans-serif;background:#fff;color:var(--ink);}
+
+.btn-primary{padding:11px 18px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;
+  font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;text-decoration:none;display:inline-block;
+  box-shadow:0 1px 2px rgba(18,23,43,.06);transition:background .12s ease, box-shadow .12s ease, transform .12s ease;}
+.btn-primary.block{width:100%;margin-top:6px;text-align:center;}
+.btn-primary:hover{background:var(--primary-dark);box-shadow:var(--shadow-sm);}
+.btn-primary:active{transform:translateY(1px);}
+.btn-outline{padding:9px 16px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-sm);font-size:13px;
+  color:var(--body-text);font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;display:inline-block;
+  transition:border-color .12s ease, color .12s ease;}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary-dark);}
+
+.flash{padding:11px 16px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:16px;font-weight:500;}
+.flash-ok{background:var(--success-soft);color:var(--success);}
+.flash-error{background:var(--danger-soft);color:var(--danger);}
+
+/* =====================================================================
+   Layout inti — Sidebar & Topbar (REDESAIN)
+   Acuan: refferensi_desain_ui_simprodi (sidebar berkategori bergaya
+   Lucide-icon, aksen indigo, tipografi Plus Jakarta Sans). Kelas & struktur
+   DOM lama dipertahankan (.app/.sidebar/.nav-group/.nav-item/.topbar/...)
+   supaya seluruh 70+ template lain otomatis ikut ter-uplift tanpa perlu
+   disentuh satu per satu — hanya base.html (ikon + markup topbar) dan file
+   ini yang berubah.
+   ===================================================================== */
+/* Layout kunci UX (perbaikan): sidebar & topbar diam di tempat, hanya
+   konten (.main-inner) yang scroll. Sebelumnya .app cuma pakai
+   min-height:100vh tanpa overflow, jadi tinggi .app ikut membesar
+   mengikuti konten terpanjang (main-inner) dan seluruh halaman —
+   termasuk sidebar & topbar — ikut ter-scroll bersama. Solusi: kunci
+   .app pas 100vh + overflow:hidden, lalu masing-masing panel (sidebar,
+   main-inner) punya scroll container sendiri via overflow-y:auto. */
+.app{display:flex;height:100vh;overflow:hidden;}
+
+.sidebar{width:276px;flex-shrink:0;height:100vh;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;}
+.brand{display:flex;align-items:center;gap:11px;padding:20px 20px 18px;flex-shrink:0;}
+.brand .mark{width:36px;height:36px;border-radius:10px;background:var(--primary);color:#fff;display:flex;
+  align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;
+  font-family:'Plus Jakarta Sans',sans-serif;box-shadow:0 4px 10px -3px rgba(83,82,208,.5);}
+.brand .txt{font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.3;letter-spacing:-.01em;}
+.brand .txt small{display:block;font-size:10.5px;font-weight:500;color:var(--muted);font-family:'Inter',sans-serif;margin-top:1px;}
+
+.sidebar-bulk-toggle{display:flex;align-items:center;gap:6px;
+  padding:0 20px 12px;flex-shrink:0;}
+.sidebar-bulk-toggle button{background:var(--canvas);border:1px solid var(--border-soft);padding:4px 10px;font-size:10.5px;
+  color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;border-radius:99px;
+  transition:color .12s ease, border-color .12s ease, background .12s ease;}
+.sidebar-bulk-toggle button:hover{color:var(--primary-dark);border-color:var(--primary);background:var(--primary-soft);}
+.sidebar-bulk-toggle .sep{display:none;}
+
+.sidebar-nav{flex:1;padding:2px 12px 12px;}
+
+.nav-group{padding:0;margin-bottom:2px;border-radius:10px;}
+.nav-group-label{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  font-size:12px;letter-spacing:.01em;color:var(--muted);
+  padding:9px 10px;margin-bottom:1px;font-weight:600;border-radius:9px;}
+.nav-group-label .lbl{display:flex;align-items:center;gap:9px;}
+.nav-group.collapsible > .nav-group-label{cursor:pointer;user-select:none;}
+.nav-group.collapsible > .nav-group-label:hover{background:var(--canvas);color:var(--body-text);}
+.nav-group.has-active > .nav-group-label{color:var(--primary-dark);background:var(--primary-soft);}
+.grp-ic{width:17px;height:17px;flex-shrink:0;color:var(--muted);}
+.nav-group.has-active > .nav-group-label .grp-ic{color:var(--primary);}
+.chev-ic{width:14px;height:14px;color:var(--muted);transition:transform .18s ease;flex-shrink:0;}
+.nav-group.collapsed .nav-group-label .chev-ic{transform:rotate(-90deg);}
+/* Panel isi grup: dianimasikan lewat trik grid-template-rows 1fr/0fr, jadi
+   transisi buka/tutup halus tanpa perlu menghitung tinggi lewat JS. */
+.nav-group-items{display:grid;grid-template-rows:1fr;transition:grid-template-rows .2s ease;}
+.nav-group.collapsed .nav-group-items{grid-template-rows:0fr;}
+.nav-group-items-inner{overflow:hidden;min-height:0;padding:2px 0 8px 12px;margin-left:14px;
+  border-left:1.5px solid var(--border-soft);}
+.nav-group.collapsed .nav-group-items-inner{padding-bottom:0;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:7.5px 10px;border-radius:8px;font-size:13.5px;
+  color:var(--body-text);text-decoration:none;margin-bottom:1px;cursor:pointer;font-weight:500;}
+.nav-item:hover{background:var(--canvas);color:var(--ink);}
+.nav-item.active{background:var(--primary-soft);color:var(--primary-dark);font-weight:700;}
+.nav-ic{width:16px;height:16px;flex-shrink:0;color:var(--muted);}
+.nav-item:hover .nav-ic{color:var(--body-text);}
+.nav-item.active .nav-ic{color:var(--primary);}
+.nav-item-txt{flex:1;min-width:0;}
+/* Item tunggal (grup "Utama" tanpa accordion) memakai ikon grup langsung
+   di dalam .nav-item, jadi selaraskan ukuran dengan sub-item lain. */
+.nav-group:not(.collapsible) .nav-group-items-inner{border-left:none;margin-left:0;padding-left:0;}
+.nav-group:not(.collapsible) .nav-item{padding:9px 10px;font-size:13.5px;}
+.nav-group:not(.collapsible) .nav-ic{width:17px;height:17px;}
+
+.sidebar-foot{margin-top:auto;padding:12px 20px 18px;border-top:1px solid var(--border-soft);flex-shrink:0;}
+.sidebar-logout{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);
+  text-decoration:none;font-weight:600;padding:8px 4px;border-radius:8px;transition:color .12s ease;}
+.sidebar-logout:hover{color:var(--danger);}
+.sidebar-logout .ic{width:15px;height:15px;flex-shrink:0;}
+.user-chip{display:flex;align-items:center;gap:10px;font-size:12.5px;}
+.user-chip .av{width:30px;height:30px;border-radius:50%;background:var(--primary-soft);color:var(--primary-dark);
+  display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;}
+.user-chip .name{font-weight:600;color:var(--ink);}
+.user-chip .role{color:var(--muted);font-size:11px;}
+
+.main{flex:1;min-width:0;height:100vh;padding:0;display:flex;flex-direction:column;overflow:hidden;}
+.main-inner{flex:1;min-height:0;overflow-y:auto;padding:28px 34px 60px;}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--primary);margin-bottom:6px;}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px;}
+.page-head h1{font-size:23px;color:var(--ink);margin:0;font-weight:700;letter-spacing:-.01em;}
+.page-head p{margin:4px 0 0;font-size:13px;color:var(--muted);}
+
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;
+  box-shadow:var(--shadow-xs);transition:box-shadow .15s ease, transform .15s ease;}
+.stat-card:hover{box-shadow:var(--shadow-sm);transform:translateY(-1px);}
+.stat-card .lbl{font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:500;}
+.stat-card .val{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--ink);}
+.stat-card .delta{font-size:11.5px;margin-top:6px;color:var(--success);font-weight:500;}
+.stat-card .delta.warn{color:var(--warning);}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;margin-bottom:18px;
+  box-shadow:var(--shadow-xs);}
+.card h2{font-size:15px;color:var(--ink);margin:0 0 2px;font-weight:700;}
+.card .card-sub{font-size:12px;color:var(--muted);margin:0 0 20px;}
+
+.rail{display:flex;align-items:flex-start;position:relative;padding:0 6px;}
+.rail::before{content:"";position:absolute;top:17px;left:38px;right:38px;height:2px;background:var(--border);}
+.rail-step{flex:1;text-align:center;position:relative;z-index:1;}
+.rail-node{width:34px;height:34px;border-radius:50%;background:var(--surface);border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-family:'IBM Plex Mono',monospace;
+  font-size:13px;font-weight:600;color:var(--muted);}
+.rail-step.filled .rail-node{border-color:var(--primary);color:var(--primary);background:var(--primary-soft);}
+.rail-step .rail-label{font-size:12px;color:var(--body-text);font-weight:500;}
+
+.grid-2{display:grid;grid-template-columns:1.3fr 1fr;gap:18px;}
+.list-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border-soft);gap:12px;}
+.list-row:last-child{border-bottom:none;}
+.list-row .lt{font-size:13px;color:var(--ink);font-weight:500;}
+.list-row .lt small{display:block;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:2px;}
+.list-row .rt{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--body-text);text-align:right;white-space:nowrap;}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;}
+.badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.badge.warn{background:var(--warning-soft);color:var(--warning);}
+.badge.danger{background:var(--danger-soft);color:var(--danger);}
+.badge.ok{background:var(--success-soft);color:var(--success);}
+
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.search{border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;background:#fff;width:240px;font-size:13px;color:var(--ink);}
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.filter-chip{padding:6px 12px;border-radius:99px;font-size:12px;font-weight:500;border:1px solid var(--border);
+  color:var(--body-text);background:#fff;cursor:pointer;text-decoration:none;}
+.filter-chip.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+
+table{width:100%;border-collapse:collapse;}
+thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
+  font-weight:600;padding:0 14px 10px;border-bottom:1px solid var(--border);}
+tbody td{padding:13px 14px;font-size:13px;color:var(--body-text);border-bottom:1px solid var(--border-soft);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--primary-soft);}
+td.nim{font-family:'IBM Plex Mono',monospace;color:var(--ink);}
+td.nama{color:var(--ink);font-weight:500;}
+.chip-status{display:inline-flex;padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:600;}
+.chip-skema{display:inline-flex;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;}
+.chip-skema.reguler{background:var(--primary-soft);color:var(--primary-dark);}
+.chip-skema.rpl{background:var(--violet-soft);color:var(--violet);}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:0;max-width:640px;}
+.form-row.full{grid-template-columns:1fr;}
+.logo-upload{width:88px;height:88px;border:1.5px dashed var(--border);border-radius:var(--radius);display:flex;
+  align-items:center;justify-content:center;color:var(--muted);font-size:22px;background:var(--canvas);margin-bottom:14px;}
+.role-pill{padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;background:var(--primary-soft);color:var(--primary-dark);}
+
+/* ---- Pola split-view: tabel kiri + form di kanan (mengikuti pola versi desktop) ---- */
+.split{display:flex;gap:16px;align-items:flex-start;}
+.split-table{flex:1;min-width:0;}
+/* Audit UI/UX (temuan lapangan) — tabel lebar (banyak kolom / isi
+   panjang) sebelumnya bocor keluar batas kartu dan tertutup panel
+   .split-form di sebelahnya (kolom Aksi/Hapus paling kanan jadi tidak
+   terlihat/tidak bisa diklik sama sekali) — terjadi di 22 modul yang
+   memakai pola .split-table > .card > table yang sama. overflow-x:auto
+   di sini membuat kartu itu sendiri jadi area scroll horizontal saat
+   perlu, bukan meluber ke kartu tetangga. Sengaja HANYA di .split-table
+   (bukan .card secara global) supaya TIDAK menyentuh .split-form .card
+   yang position:sticky di bawah — overflow & sticky pada elemen yang
+   sama bisa saling mengganggu kalau digabung sembarangan. */
+.split-table .card{overflow-x:auto;}
+.split-form{width:360px;flex-shrink:0;}
+.split-form .card{position:sticky;top:16px;}
+.field-compact{margin-bottom:10px;}
+.field-compact label{display:block;font-size:11.5px;font-weight:500;color:var(--body-text);margin-bottom:4px;}
+.field-compact input, .field-compact select{width:100%;padding:8px 10px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);font-size:13px;font-family:'Inter',sans-serif;color:var(--ink);background:#fff;}
+.field-compact input:focus, .field-compact select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft);}
+.section-label{font-size:12px;font-weight:600;color:var(--ink);margin:14px 0 8px;padding-top:10px;border-top:1px solid var(--border);}
+.section-label:first-child{margin-top:0;padding-top:0;border-top:none;}
+.chk-row{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--body-text);padding:4px 0;}
+.chk-row input{width:auto;}
+.btn-block{width:100%;padding:9px;margin-bottom:6px;text-align:center;display:block;font-size:13px;}
+.hint{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5;}
+.small-table td, .small-table th{padding:8px 10px;font-size:12.5px;}
+.tab-row{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.tab-item{padding:8px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;border:1px solid var(--border);
+  background:#fff;color:var(--body-text);text-decoration:none;}
+.tab-item.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.kpi-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center;}
+.kpi-box .v{font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:var(--ink);}
+.kpi-box .l{font-size:10.5px;color:var(--muted);margin-top:3px;}
+
+/* ---- Topbar (REDESAIN — dari bar gelap penuh jadi topbar putih minimalis,
+   selaras dgn acuan refferensi_desain_ui_simprodi; info institusi & tahun
+   akademik dipertahankan karena itu konteks nyata yg dipakai, BUKAN
+   ditambah kotak pencarian dekoratif karena belum ada rute search di
+   backend — menghindari elemen UI yang terlihat fungsional tapi kosong) ---- */
+.topbar{height:72px;background:var(--surface);color:var(--ink);flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;padding:0 32px;
+  border-bottom:1px solid var(--border);position:relative;z-index:2;}
+.topbar-left{display:flex;align-items:center;gap:20px;}
+.topbar-inst{padding-right:20px;border-right:1px solid var(--border);}
+.topbar-inst h1{font-size:14.5px;font-weight:700;margin:0;font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);letter-spacing:-.01em;}
+.topbar-inst p{margin:2px 0 0;font-size:11.5px;color:var(--muted);}
+.topbar-ta{display:flex;align-items:center;gap:7px;background:var(--primary-soft);border-radius:99px;padding:6px 14px 6px 12px;}
+.topbar-ta .lbl{font-size:9.5px;color:var(--primary-dark);opacity:.75;text-transform:uppercase;letter-spacing:.05em;font-weight:700;}
+.topbar-ta .v{font-size:12.5px;font-weight:700;color:var(--primary-dark);}
+.topbar-right{display:flex;align-items:center;gap:6px;}
+.topbar-icon{color:var(--muted);text-decoration:none;position:relative;width:38px;height:38px;
+  display:flex;align-items:center;justify-content:center;border-radius:99px;transition:background .12s ease, color .12s ease;}
+.topbar-icon .ic{width:19px;height:19px;}
+.topbar-icon:hover{color:var(--ink);background:var(--canvas);}
+.topbar-user{display:flex;align-items:center;gap:10px;padding:5px 6px 5px 16px;margin-left:10px;border-left:1px solid var(--border);
+  text-decoration:none;color:var(--ink);border-radius:99px;transition:background .12s ease;}
+.topbar-user:hover{background:var(--canvas);}
+.topbar-user .av{width:34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;
+  justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;font-family:'Plus Jakarta Sans',sans-serif;}
+.topbar-user .meta{text-align:right;line-height:1.25;}
+.topbar-user .meta .n{font-size:12.5px;font-weight:700;color:var(--ink);}
+.topbar-user .meta .r{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+.topbar-logout{color:var(--muted);font-size:12px;text-decoration:none;margin-left:4px;}
+.topbar-logout:hover{color:var(--ink);}
+
+/* ---- Panduan Penggunaan Aplikasi (halaman panduan.html) ---- */
+.panduan-toc{scroll-margin-top:16px;}
+.panduan-group{padding:0;overflow:hidden;scroll-margin-top:16px;}
+.panduan-group-head{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:22px 24px;cursor:pointer;user-select:none;}
+.panduan-group-head:hover{background:var(--canvas);}
+.panduan-group-head .chev{font-size:12px;color:var(--muted);flex-shrink:0;transition:transform .18s ease;}
+.panduan-group.collapsed .panduan-group-head .chev{transform:rotate(-90deg);}
+.panduan-group-body{display:grid;grid-template-rows:1fr;transition:grid-template-rows .2s ease;}
+.panduan-group.collapsed .panduan-group-body{grid-template-rows:0fr;}
+.panduan-group-body-inner{overflow:hidden;min-height:0;padding:0 24px 22px;}
+.panduan-item{border-top:1px solid var(--border);padding:18px 0;}
+.panduan-item:first-child{border-top:1px solid var(--border);}
+.panduan-item-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap;}
+.panduan-item-head h3{font-size:14px;color:var(--ink);margin:0;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;}
+.panduan-item-ringkasan{font-size:13px;color:var(--body-text);margin:0 0 10px;line-height:1.55;}
+.panduan-sublabel{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--muted);margin:10px 0 6px;}
+.panduan-steps, .panduan-tips{margin:0;padding-left:20px;font-size:13px;color:var(--body-text);line-height:1.6;}
+.panduan-steps li, .panduan-tips li{margin-bottom:4px;}
+.panduan-item-title mark{background:var(--warning-soft);color:var(--ink);padding:0 2px;border-radius:2px;}
+
+/* ---- Cetak / "Unduh sebagai PDF" (window.print(), lihat panduanPrint() di
+   templates/panduan.html) — berlaku umum untuk semua halaman: sidebar,
+   topbar, dan elemen ber-class .no-print disembunyikan; konten utama
+   dilebarkan penuh; seluruh panel accordion dipaksa terbuka supaya tidak
+   ada isi yang hilang di hasil cetak. ---- */
+@media print{
+  .sidebar, .topbar, .no-print{display:none !important;}
+  .app{display:block;height:auto;overflow:visible;}
+  .main{padding:0;height:auto;overflow:visible;}
+  .main-inner{padding:0 !important;height:auto;overflow:visible;}
+  .nav-group-items, .panduan-group-body{grid-template-rows:1fr !important;}
+  .panduan-group{break-inside:avoid-page;page-break-inside:avoid;border:1px solid var(--border);margin-bottom:14px;}
+  .panduan-group-head{cursor:default;}
+  .panduan-group-head .chev{display:none;}
+  body{background:#fff;}
+  a[href]:after{content:"";}
+}
+
+/* =====================================================================
+   Audit Lanjutan 3 — Preferensi Tampilan, Tema Tampilan & Pusat Notifikasi
+   ===================================================================== */
+
+/* ---- Tema Tampilan: hanya aksen warna, --surface/--canvas/--ink tetap
+   sama di semua tema supaya kontras & keterbacaan tabel tidak berubah. ---- */
+html[data-theme="emerald"]{
+  --primary:#0F9D67; --primary-dark:#0B6B47; --primary-soft:#E6F6EF;
+  --violet:#0F9D67; --violet-soft:#E6F6EF;
+}
+html[data-theme="ocean"]{
+  --primary:#1D6FC4; --primary-dark:#154C8A; --primary-soft:#E8F1FB;
+  --violet:#1D6FC4; --violet-soft:#E8F1FB;
+}
+html[data-theme="amber"]{
+  --primary:#C4750E; --primary-dark:#8A5209; --primary-soft:#FBF0DF;
+  --violet:#C4750E; --violet-soft:#FBF0DF;
+}
+html[data-theme="rose"]{
+  --primary:#C43F6B; --primary-dark:#8A2C4B; --primary-soft:#FBE9F0;
+  --violet:#C43F6B; --violet-soft:#FBE9F0;
+}
+html[data-theme="slate"]{
+  --primary:#465166; --primary-dark:#2B3242; --primary-soft:#E9EBEF;
+  --violet:#465166; --violet-soft:#E9EBEF;
+}
+
+.tema-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:6px;}
+.tema-swatch{display:flex;align-items:center;gap:10px;border:1.5px solid var(--border);border-radius:var(--radius);
+  padding:12px 14px;cursor:pointer;background:#fff;}
+.tema-swatch input{position:absolute;opacity:0;pointer-events:none;}
+.tema-swatch .dot{width:22px;height:22px;border-radius:50%;flex-shrink:0;box-shadow:inset 0 0 0 2px rgba(0,0,0,.06);}
+.tema-swatch .lbl{font-size:13px;font-weight:500;color:var(--ink);}
+.tema-swatch.active{border-color:var(--primary);background:var(--primary-soft);}
+
+/* ---- Preferensi Tampilan: pilihan densitas ---- */
+.pref-choice-row{display:flex;gap:10px;margin-top:6px;}
+.pref-choice{display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:9px 16px;cursor:pointer;font-size:13px;color:var(--body-text);background:#fff;}
+.pref-choice input{position:absolute;opacity:0;pointer-events:none;}
+.pref-choice.active{border-color:var(--primary);background:var(--primary-soft);color:var(--primary-dark);font-weight:600;}
+
+/* ---- Preferensi Tampilan: Densitas "Padat" — jarak baris lebih rapat
+   di semua tabel & list-row di seluruh aplikasi (efek global lewat class
+   di <body>, bukan per-halaman). ---- */
+body.density-padat tbody td{padding:7px 12px;}
+body.density-padat thead th{padding:0 12px 6px;}
+body.density-padat .list-row{padding:6px 0;}
+body.density-padat .card{padding:16px 20px;}
+
+/* ---- Pusat Notifikasi ---- */
+.badge.info{background:var(--primary-soft);color:var(--primary-dark);}
+.notif-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+.notif-summary-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 18px;box-shadow:var(--shadow-xs);}
+.notif-summary-item .n{font-size:26px;font-weight:700;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;}
+.notif-summary-item .l{font-size:12px;color:var(--muted);margin-top:2px;}
+.notif-summary-item.danger .n{color:var(--danger);}
+.notif-summary-item.warn .n{color:var(--warning);}
+
+.topbar-icon-badge{position:absolute;top:3px;right:5px;min-width:16px;height:16px;padding:0 4px;
+  border-radius:99px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;line-height:16px;
+  text-align:center;font-family:'Inter',sans-serif;box-shadow:0 0 0 2px var(--surface);}
+.topbar-icon-badge.warn{background:var(--warning);}
+
+/* ---- Responsif dasar: di layar sempit, sidebar tetap bisa discroll
+   terpisah dari konten dan tidak memaksa horizontal-scroll pada topbar. ---- */
+@media (max-width:1080px){
+  .sidebar{width:236px;}
+  .topbar{padding:0 20px;}
+  .topbar-inst{display:none;}
+  .main-inner{padding:22px 20px 44px;}
+}

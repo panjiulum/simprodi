@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}RKP Sidang — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Rekap & Laporan</div>
+<div class="page-head">
+  <div><h1>RKP Sidang — Honor Penguji & Pembimbing</h1></div>
+  <a class="btn-outline" href="{{ url_for('rekap.rkp_sidang_ekspor', tahap=tahap) }}">📤 Ekspor Excel</a>
+</div>
+{% include "_tahap_filter.html" %}
+<div class="card" style="overflow-x:auto;">
+  <h2>Bagian 1 — Honor Penguji Sidang</h2>
+  <p class="card-sub">Semua peran, tarif flat</p>
+  <table class="small-table">
+    <thead><tr><th style="padding-left:0;">Nama Dosen</th><th>Jumlah Peran</th><th>Honor</th></tr></thead>
+    <tbody>
+    {% for r in d.bagian1 %}
+      <tr><td class="nama" style="padding-left:0;">{{ r.nama }}</td><td class="mono">{{ r.jumlah }}</td><td class="mono">Rp {{ "{:,.0f}".format(r.honor).replace(",", ".") }}</td></tr>
+    {% else %}<tr><td colspan="3" style="text-align:center;color:var(--muted);">Tidak ada data.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="card" style="overflow-x:auto;">
+  <h2>Bagian 2 — Honor Pembimbing</h2>
+  <p class="card-sub">Hanya mahasiswa LULUS</p>
+  <table class="small-table">
+    <thead><tr><th style="padding-left:0;">Nama Dosen</th><th>Sbg Pembimbing 1</th><th>Sbg Pembimbing 2</th><th>Honor</th></tr></thead>
+    <tbody>
+    {% for r in d.bagian2 %}
+      <tr><td class="nama" style="padding-left:0;">{{ r.nama }}</td><td class="mono">{{ r.sbg_pemb1 }}</td><td class="mono">{{ r.sbg_pemb2 }}</td><td class="mono">Rp {{ "{:,.0f}".format(r.honor).replace(",", ".") }}</td></tr>
+    {% else %}<tr><td colspan="4" style="text-align:center;color:var(--muted);">Tidak ada data.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Tema Tampilan — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div><h1>Tema Tampilan</h1><p>Aksen warna aplikasi — hanya mengganti warna, kontras teks & keterbacaan tabel tetap sama di semua tema</p></div>
+</div>
+
+<form method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="card" style="max-width:760px;">
+  <h2>Pilih Aksen Warna</h2>
+  <p class="card-sub">Berlaku langsung ke sidebar, tombol utama, dan elemen aksen lain di seluruh halaman setelah disimpan.</p>
+  <div class="tema-grid">
+    {% for t in TEMA_WARNA_LIST %}
+    <label class="tema-swatch {{ 'active' if aktif == t.kode else '' }}">
+      <input type="radio" name="tema_warna" value="{{ t.kode }}" {% if aktif == t.kode %}checked{% endif %} onchange="this.form.submit()">
+      <span class="dot" style="background:{{ t.preview }};"></span>
+      <span class="lbl">{{ t.label }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  <noscript><button class="btn-primary" type="submit" style="padding:10px 18px;margin-top:16px;">Terapkan Tema</button></noscript>
+</div>
+</form>
+{% endblock %}

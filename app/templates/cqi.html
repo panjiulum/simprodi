@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Siklus CQI — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Mutu & Analytics</div>
+<div class="page-head">
+  <div>
+    <h1>Siklus CQI (Continuous Quality Improvement)</h1>
+    <p>Gap Analysis capaian CPL vs target, dan rencana tindak lanjut (PDCA) per siklus</p>
+  </div>
+</div>
+
+<form class="tab-row">
+  <a class="tab-item {% if tab=='gap-analysis' %}active{% endif %}" href="{{ url_for('cqi.index', tab='gap-analysis') }}">📉 Gap Analysis</a>
+  <a class="tab-item {% if tab=='siklus' %}active{% endif %}" href="{{ url_for('cqi.index', tab='siklus') }}">🔁 Siklus CQI</a>
+</form>
+
+{% if not kur %}
+<div class="card"><p style="color:var(--muted);">Belum ada kurikulum aktif — buat dulu di menu Kurikulum & OBE.</p></div>
+
+{% elif tab == 'gap-analysis' %}
+<div class="card" style="padding:18px 24px;">
+  <p class="card-sub">Capaian dihitung dari seluruh nilai CPMK yang sudah diinput (menu Nilai & OBE Assessment) untuk kurikulum <strong>{{ kur.nama }}</strong>, dibandingkan dengan target periode akademik terpilih.</p>
+  <form method="get" style="display:flex;gap:10px;align-items:end;margin-top:10px;">
+    <input type="hidden" name="tab" value="gap-analysis">
+    <div class="field-compact" style="margin:0;">
+      <label>Periode Akademik yang Dievaluasi</label>
+      <select name="periode_id" onchange="this.form.submit()">
+        <option value="">— periode berjalan (otomatis) —</option>
+        {% for p in daftar_periode %}
+        <option value="{{ p.id }}" {% if periode_terpilih and periode_terpilih.id==p.id %}selected{% endif %}>{{ p.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+  {% if not daftar_periode %}<p class="card-sub" style="margin-top:8px;">Belum ada tahun ajaran dibuka — buka dulu di Pengaturan → Tahun Akademik supaya siklus CQI bisa ditautkan ke periode resmi.</p>{% endif %}
+</div>
+<div class="card" style="padding:8px 0;">
+  <table>
+    <thead><tr><th style="padding-left:24px;">CPL</th><th>Deskripsi</th><th>Capaian Saat Ini</th><th>Target</th><th>Gap</th><th style="padding-right:24px;"></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td class="nim" style="padding-left:24px;">{{ r.cpl.kode }}</td>
+        <td>{{ r.cpl.deskripsi }}</td>
+        <td class="mono">{% if r.persen_tuntas is not none %}{{ r.persen_tuntas }}%{% else %}belum ada nilai{% endif %}</td>
+        <td class="mono">{{ r.target }}%</td>
+        <td>
+          {% if r.gap is not none %}
+            {% if r.gap > 0 %}<span class="chip-status" style="background:var(--danger-soft);color:var(--danger);">-{{ r.gap }}%</span>
+            {% else %}<span class="chip-status" style="background:var(--success-soft);color:var(--success);">tercapai (+{{ -r.gap }}%)</span>{% endif %}
+          {% else %}<span style="color:var(--muted);">-</span>{% endif %}
+        </td>
+        <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+          {% if r.siklus %}
+          <span class="chip-status" style="background:var(--primary-soft);color:var(--primary-dark);">siklus dibuka</span>
+          <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('cqi.index', tab='siklus', edit=r.siklus.id) }}">Kelola</a>
+          {% else %}
+          <form method="post" action="{{ url_for('cqi.buka_siklus') }}" style="display:inline-flex;gap:6px;align-items:center;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="cpl_id" value="{{ r.cpl.id }}">
+            <input type="hidden" name="periode_akademik_id" value="{{ periode_terpilih.id if periode_terpilih else '' }}">
+            <input type="hidden" name="tahun_akademik" value="{{ tahun_aktif }}">
+            <input name="target_persen" type="number" min="0" max="100" value="{{ r.target }}" style="width:64px;padding:6px;">
+            <button class="btn-primary" style="padding:5px 10px;font-size:12px;" type="submit">Buka Siklus CQI</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Belum ada CPL pada kurikulum aktif.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% elif tab == 'siklus' %}
+<div class="card" style="padding:18px 24px;">
+  <form class="filter-chips" method="get" style="margin:0;">
+    <input type="hidden" name="tab" value="siklus">
+    <a class="filter-chip {% if not tahun_filter %}active{% endif %}" href="{{ url_for('cqi.index', tab='siklus') }}">Semua Tahun</a>
+    {% for t in daftar_tahun %}
+    <a class="filter-chip {% if tahun_filter==t %}active{% endif %}" href="{{ url_for('cqi.index', tab='siklus', tahun_akademik=t) }}">{{ t }}</a>
+    {% endfor %}
+  </form>
+</div>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">CPL</th><th>Tahun</th><th>Capaian / Target</th><th>Status</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="nim" style="padding-left:24px;">{{ r.cpl_kode }}</td>
+            <td>{{ r.tahun_akademik }}</td>
+            <td class="mono">{{ r.capaian_persen if r.capaian_persen is not none else '-' }}% / {{ r.target_persen }}%</td>
+            <td>
+              <span class="chip-status" style="{% if r.status=='Selesai' %}background:var(--success-soft);color:var(--success);{% elif r.status=='Berjalan' %}background:var(--warning-soft);color:var(--warning);{% else %}background:var(--primary-soft);color:var(--primary-dark);{% endif %}">{{ r.status }}</span>
+            </td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('cqi.index', tab='siklus', edit=r.id) }}">Kelola</a>
+              <form method="post" action="{{ url_for('cqi.hapus_siklus', sid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus siklus CQI {{ r.cpl_kode }} {{ r.tahun_akademik }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada siklus CQI — buka dari tab Gap Analysis.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="split-form">
+    {% if edit_row %}
+    <div class="card">
+      <h2>Rencana Tindak Lanjut — {{ edit_row.cpl_kode }}</h2>
+      <p class="card-sub">{{ edit_row.tahun_akademik }} · Capaian {{ edit_row.capaian_persen if edit_row.capaian_persen is not none else '-' }}% dari target {{ edit_row.target_persen }}%</p>
+      <form method="post" action="{{ url_for('cqi.simpan_siklus') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="id" value="{{ edit_row.id }}">
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Akar Masalah</label><input name="akar_masalah" value="{{ edit_row.akar_masalah or '' }}"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Rencana Tindak Lanjut</label><input name="rencana_tindak_lanjut" value="{{ edit_row.rencana_tindak_lanjut or '' }}"></div>
+        <div class="field-compact"><label>Penanggung Jawab</label><input name="penanggung_jawab" value="{{ edit_row.penanggung_jawab or '' }}"></div>
+        <div class="field-compact"><label>Tenggat</label><input name="tenggat" type="date" value="{{ edit_row.tenggat or '' }}"></div>
+        <div class="field-compact"><label>Status</label>
+          <select name="status">
+            {% for s in status_list %}
+            <option value="{{ s }}" {% if edit_row.status==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Evaluasi Hasil (Check/Act)</label><input name="evaluasi_hasil" value="{{ edit_row.evaluasi_hasil or '' }}"></div>
+        <div style="grid-column:1/-1;"><button class="btn-primary" type="submit">💾 Simpan Rencana Tindak Lanjut</button></div>
+      </form>
+    </div>
+    {% else %}
+    <div class="card"><p style="color:var(--muted);font-size:13px;">Pilih siklus di sebelah kiri (tombol "Kelola") untuk mengisi rencana tindak lanjut.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

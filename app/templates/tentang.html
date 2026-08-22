@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Tentang Aplikasi — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div>
+    <h1>Tentang Aplikasi</h1>
+    <p>Versi, identitas instansi, dan status sistem — diambil langsung dari data berjalan, bukan teks statis.</p>
+  </div>
+</div>
+
+<div class="card" style="display:flex;gap:20px;align-items:center;padding:24px 28px;">
+  <div style="width:56px;height:56px;border-radius:16px;background:var(--primary-soft);color:var(--primary-dark);
+    display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">🎓</div>
+  <div>
+    <h2 style="margin-bottom:2px;">{{ APP_NAME }} <span class="card-sub" style="font-weight:400;">({{ APP_SHORT_NAME }})</span></h2>
+    <p class="card-sub">Versi {{ APP_VERSION }} · Dibangun dengan Flask + SQLite, berjalan offline di komputer prodi.</p>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Modul Aktif</div>
+    <div class="val">{{ jumlah_modul_aktif }}</div>
+    <div class="delta">terdaftar & berjalan sekarang</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Modul Direncanakan</div>
+    <div class="val">{{ jumlah_modul_roadmap }}</div>
+    <div class="delta {% if jumlah_modul_roadmap %}warn{% endif %}">lihat Panduan Penggunaan untuk daftarnya</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Ukuran Database</div>
+    <div class="val">{{ ukuran_db }}</div>
+    <div class="delta">{{ jumlah_tabel }} tabel</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Backup Terakhir</div>
+    <div class="val">{% if status_backup.ada_backup %}{{ status_backup.hari_sejak_terakhir }} hr{% else %}—{% endif %}</div>
+    <div class="delta {% if status_backup.perlu_reminder %}warn{% endif %}">
+      {% if not status_backup.ada_backup %}belum pernah backup{% elif status_backup.perlu_reminder %}sudah lama, sebaiknya backup{% else %}aman{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Identitas Instansi</h2>
+  <p class="card-sub">Ditarik dari Pengaturan → Identitas & Branding. Ubah di sana bila ada perubahan.</p>
+  <table>
+    <tbody>
+      <tr><td style="width:220px;color:var(--muted);">Institusi</td><td>{{ nama_institusi or '—' }}</td></tr>
+      <tr><td style="color:var(--muted);">Fakultas</td><td>{{ nama_fakultas or '—' }}</td></tr>
+      <tr><td style="color:var(--muted);">Program Studi</td><td>{{ nama_prodi or '—' }}</td></tr>
+      <tr><td style="color:var(--muted);">Tahun Akademik Aktif</td><td>{{ tahun_akademik_aktif or '—' }}</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Ringkasan Data Tersimpan</h2>
+  <table>
+    <tbody>
+      {% for label, jumlah in ringkasan_data.items() %}
+      <tr><td style="width:220px;color:var(--muted);">{{ label }}</td><td>{{ jumlah if jumlah is not none else '—' }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Status Database & Backup</h2>
+  <table>
+    <tbody>
+      <tr><td style="width:220px;color:var(--muted);">Lokasi file database</td><td class="mono" style="font-size:12.5px;">{{ db_path }}</td></tr>
+      <tr><td style="color:var(--muted);">Jumlah file backup tersimpan</td><td>{{ jumlah_file_backup }}</td></tr>
+      <tr><td style="color:var(--muted);">Kebijakan retensi backup</td><td>Otomatis hapus backup &gt; {{ retensi_hari }} hari, minimal 3 file terbaru selalu disisakan — berjalan sendiri tiap aplikasi start.</td></tr>
+      {% if status_backup.pesan %}
+      <tr><td style="color:var(--muted);">Catatan</td><td><span class="badge {% if status_backup.ada_backup %}warn{% else %}danger{% endif %}"><span class="dot"></span>perlu perhatian</span> {{ status_backup.pesan }}</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+  <a href="{{ url_for('backup.index') }}" class="btn-outline" style="margin-top:14px;display:inline-block;">Buka Backup & Restore →</a>
+</div>
+
+<div class="card">
+  <h2>Cakupan Modul</h2>
+  <p class="card-sub">
+    {{ jumlah_modul_aktif }} modul sudah aktif berbasis data sungguhan (bukan tampilan demo). Sisanya
+    ({{ jumlah_modul_roadmap }} modul) masih berstatus roadmap dan ditandai jelas sebagai
+    "dalam pengembangan" di menunya masing-masing — lihat rincian lengkap dan cara pakai tiap modul
+    di Panduan Penggunaan.
+  </p>
+  <a href="{{ url_for('panduan.index') }}" class="btn-outline" style="margin-top:6px;display:inline-block;">Buka Panduan Penggunaan →</a>
+</div>
+{% endblock %}

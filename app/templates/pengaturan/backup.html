@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Backup & Restore — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div><h1>Backup & Restore</h1><p>Cadangkan keseluruhan data aplikasi (database + seluruh file dokumen/surat/RPS) ke satu file, atau pulihkan dari cadangan sebelumnya.</p></div>
+</div>
+
+<div class="card" style="max-width:640px;">
+  <h2>💾 Backup Sekarang</h2>
+  <p class="card-sub">
+    <strong>Backup Lengkap</strong> mencadangkan database <em>beserta</em> seluruh
+    file fisik yang tersimpan di luar database — dokumen (Document Center),
+    bukti akreditasi, dokumen kerjasama, RPS, dokumen RPL, arsip surat keluar,
+    dan logo institusi — jadi satu file <span class="mono">.zip</span> siap
+    dipindahkan ke komputer lain. Aman dijalankan kapan saja, termasuk saat
+    aplikasi sedang dipakai.
+  </p>
+  <details style="margin:8px 0 14px;">
+    <summary style="cursor:pointer;color:var(--muted);font-size:12px;">Lihat folder yang ikut dicadangkan</summary>
+    <ul style="margin:8px 0 0 18px;padding:0;font-size:12px;color:var(--muted);">
+      {% for folder, deskripsi in folder_dicadangkan %}
+      <li>{{ deskripsi }}</li>
+      {% endfor %}
+    </ul>
+  </details>
+  <form method="post" action="{{ url_for('backup.backup_sekarang') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label>Jenis Backup</label>
+      <select name="tipe" style="width:100%;">
+        <option value="lengkap" selected>Lengkap — database + seluruh file (.zip, disarankan)</option>
+        <option value="cepat">Database Saja — cepat, tanpa file fisik (.db)</option>
+      </select>
+    </div>
+    <button class="btn-primary" type="submit" style="padding:10px 18px;">Buat Backup Sekarang</button>
+  </form>
+</div>
+
+<div class="card" style="max-width:640px;border-left:4px solid var(--danger, #dc2626);">
+  <h2>⚠️ Restore dari File</h2>
+  <p class="card-sub">Menimpa <strong>seluruh</strong> data saat ini dengan isi file yang diunggah — untuk file <span class="mono">.zip</span> (Backup Lengkap), folder dokumen/surat/RPS ikut dipulihkan. Data saat ini otomatis dicadangkan lengkap dulu sebelum ditimpa. Anda akan diminta login ulang setelah restore selesai.</p>
+  <form method="post" action="{{ url_for('backup.restore') }}" enctype="multipart/form-data" onsubmit="return confirm('Yakin menimpa seluruh data saat ini dengan file ini? Tindakan ini akan mengganti semua data.');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field"><label>File Backup (.zip lengkap atau .db lama)</label><input type="file" name="file_restore" accept=".zip,.db" required></div>
+    <div class="field"><label>Konfirmasi Password Anda</label><input type="password" name="password_konfirmasi" required></div>
+    <button class="btn-primary" type="submit" style="padding:10px 18px;background:var(--danger,#dc2626);">Timpa & Restore</button>
+  </form>
+</div>
+
+<div class="card" style="max-width:640px;border-left:4px solid var(--danger, #dc2626);">
+  <h2>🗑️ Reset Total Data</h2>
+  <p class="card-sub">
+    Mengosongkan <strong>seluruh</strong> data aplikasi (mahasiswa, dosen, kurikulum, nilai,
+    seluruh modul) dan mengembalikannya persis ke kondisi baru diinstal — Anda akan diminta
+    membuat ulang akun admin setelahnya. Berkas yang sudah diunggah (dokumen, RPS, dst.) tidak
+    ikut terhapus dari folder data, hanya catatannya di database yang hilang. Data saat ini
+    <strong>otomatis dicadangkan lengkap dulu</strong> sebelum dikosongkan, jadi tetap bisa
+    dipulihkan lewat Restore di atas kalau ternyata keliru.
+  </p>
+  <form method="post" action="{{ url_for('backup.reset_data') }}"
+        onsubmit="return confirm('Ini akan MENGOSONGKAN SELURUH DATA aplikasi. Yakin? Data saat ini akan dicadangkan otomatis lebih dulu.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label>Ketik <span class="mono">HAPUS SEMUA DATA</span> untuk konfirmasi</label>
+      <input type="text" name="frasa_konfirmasi" autocomplete="off" required>
+    </div>
+    <div class="field"><label>Konfirmasi Password Anda</label><input type="password" name="password_konfirmasi" required></div>
+    <button class="btn-primary" type="submit" style="padding:10px 18px;background:var(--danger,#dc2626);">Kosongkan Seluruh Data</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="page-head" style="margin-bottom:8px;">
+    <h2 style="margin:0;">📁 Riwayat Backup</h2>
+    <form method="get" style="display:flex;gap:8px;">
+      <select name="tahun_akademik" onchange="this.form.submit()">
+        <option value="">Semua Tahun</option>
+        {% for t in daftar_tahun_akademik %}
+          <option value="{{ t }}" {{ 'selected' if t == tahun_filter }}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+  <p class="card-sub">Tiap backup ditandai kode tahun ajaran yang sedang "Berjalan" saat backup itu dibuat — dipakai untuk menyaring riwayat, BUKAN untuk memisah/mengekspor data per tahun (backup tetap mencadangkan keseluruhan data aplikasi).</p>
+  <table>
+    <thead><tr><th style="padding-left:24px;">Nama File</th><th>Jenis</th><th>Tahun Akademik</th><th>Ukuran</th><th>Dibuat Pada</th><th style="padding-right:24px;"></th></tr></thead>
+    <tbody>
+    {% for b in backups %}
+      <tr>
+        <td class="mono" style="padding-left:24px;">{{ b.nama }}</td>
+        <td>{{ b.tipe }}</td>
+        <td class="mono">{{ b.tahun_akademik }}</td>
+        <td class="mono">{{ b.ukuran_kb }} KB</td>
+        <td class="mono">{{ b.dibuat_pada }}</td>
+        <td style="padding-right:24px;"><a class="btn-outline" style="padding:4px 10px;font-size:12px;" href="{{ url_for('backup.unduh', nama=b.nama) }}">⬇ Unduh</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">{% if tahun_filter %}Tidak ada backup untuk tahun ini.{% else %}Belum ada backup. Buat yang pertama di atas.{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

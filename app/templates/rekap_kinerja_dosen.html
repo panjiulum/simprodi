@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Rekap Kinerja Dosen (SDM) — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Rekap & Laporan</div>
+<div class="page-head">
+  <div><h1>Rekap Kinerja Dosen (SDM)</h1><p>Ringkasan jumlah kegiatan per kategori Tri Dharma + kesiapan BKD/SISTER per dosen, dari data Modul SDM.
+    {% if hanya_homebase %}Menampilkan <strong>hanya dosen homebase</strong>.{% else %}Menampilkan <strong>semua dosen aktif</strong> (termasuk dosen luar).{% endif %}</p></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <form method="get" style="display:flex;gap:8px;">
+      {% if not hanya_homebase %}<input type="hidden" name="semua" value="1">{% endif %}
+      <select name="tahun_akademik" onchange="this.form.submit()">
+        <option value="">Semua Tahun</option>
+        {% for t in tahun_list %}
+          <option value="{{ t }}" {{ 'selected' if t == tahun_akademik }}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% if hanya_homebase %}
+      <a class="btn-outline" href="{{ url_for('rekap.kinerja_dosen', semua=1, tahun_akademik=tahun_akademik) }}">👥 Tampilkan Semua Dosen</a>
+    {% else %}
+      <a class="btn-outline" href="{{ url_for('rekap.kinerja_dosen', tahun_akademik=tahun_akademik) }}">🏠 Hanya Dosen Homebase</a>
+    {% endif %}
+    <a class="btn-outline" href="{{ url_for('rekap.kinerja_dosen_ekspor', semua=(0 if hanya_homebase else 1), tahun_akademik=tahun_akademik) }}">📤 Ekspor Excel</a>
+  </div>
+</div>
+<div class="card" style="padding:8px 0;overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th style="padding-left:24px;">Nama Dosen</th>
+        {% if not hanya_homebase %}<th>Homebase</th>{% endif %}
+        {% for _t, label in kategori %}<th class="mono">{{ label }}</th>{% endfor %}
+        <th class="mono">Total Entri</th>
+        <th>Kesiapan BKD</th>
+        <th>Kesiapan SISTER</th>
+        <th style="padding-right:24px;">Reminder</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td class="nama" style="padding-left:24px;">
+          <a href="{{ url_for('sdm.detail', dosen_id=r.dosen.id) }}">{{ r.nama }}</a>
+        </td>
+        {% if not hanya_homebase %}<td><span class="badge {{ 'ok' if r.status_homebase == 'Homebase' else '' }}">{{ r.status_homebase }}</span></td>{% endif %}
+        {% for t, _label in kategori %}<td class="mono">{{ r.jumlah[t] }}</td>{% endfor %}
+        <td class="mono"><strong>{{ r.total_entri }}</strong></td>
+        <td><span class="badge {{ 'ok' if r.kesiapan_bkd >= 80 else ('warn' if r.kesiapan_bkd >= 50 else '') }}">{{ r.kesiapan_bkd }}%</span></td>
+        <td><span class="badge {{ 'ok' if r.kesiapan_sister >= 80 else ('warn' if r.kesiapan_sister >= 50 else '') }}">{{ r.kesiapan_sister }}%</span></td>
+        <td style="padding-right:24px;">
+          {% if r.n_reminder %}<span class="badge warn"><span class="dot"></span>{{ r.n_reminder }}</span>{% else %}<span class="mono">—</span>{% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="20" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada data.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

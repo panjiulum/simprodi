@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% block title %}Mutu — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Mutu & Analytics</div>
+<div class="page-head">
+  <div>
+    <h1>🎯 Mutu: IKU, Akreditasi & Audit Mutu Internal</h1>
+    <p>Indikator Kinerja Utama, kesiapan akreditasi, dan siklus Audit Mutu Internal (SPMI)</p>
+  </div>
+</div>
+
+<form class="tab-row">
+  <a class="tab-item {% if tab=='iku' %}active{% endif %}" href="{{ url_for('mutu.index', tab='iku') }}">🎯 IKU</a>
+  <a class="tab-item {% if tab=='akreditasi' %}active{% endif %}" href="{{ url_for('mutu.index', tab='akreditasi') }}">🏅 Akreditasi</a>
+  <a class="tab-item {% if tab=='audit' %}active{% endif %}" href="{{ url_for('mutu.index', tab='audit') }}">🔍 Audit Mutu Internal</a>
+  <a class="tab-item {% if tab=='kelengkapan' %}active{% endif %}" href="{{ url_for('mutu.index', tab='kelengkapan') }}">📋 Kelengkapan Data</a>
+  <a class="tab-item {% if tab=='log' %}active{% endif %}" href="{{ url_for('mutu.index', tab='log') }}">🗂️ Log Aktivitas</a>
+</form>
+
+{% if tab == 'iku' %}
+<div class="card" style="padding:14px 24px;">
+  <form method="get" class="search" style="margin:0;">
+    <input type="hidden" name="tab" value="iku">
+    <input name="tahun" placeholder="Tahun (mis. 2026)" value="{{ tahun }}" style="max-width:200px;">
+    <button class="btn-outline" type="submit">Tampilkan</button>
+  </form>
+</div>
+
+{% if not tahun %}
+<div class="card"><p style="font-size:13px;color:var(--muted);">Masukkan tahun untuk melihat realisasi IKU (atau atur "Tahun Akademik Aktif" di Pengaturan supaya terisi otomatis).</p></div>
+{% else %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+  {% for iku in ringkasan %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+      <h2 style="margin:0;">IKU {{ iku.nomor }}</h2>
+      <span class="badge {{ 'ok' if iku.cara=='DERIVED' else 'warn' }}"><span class="dot"></span>{{ 'Otomatis' if iku.cara=='DERIVED' else 'Manual' }}</span>
+    </div>
+    <p class="card-sub">{{ iku.nama }}</p>
+    <div style="text-align:center;padding:14px 0;">
+      <div style="font-size:32px;font-weight:800;color:var(--primary);">{{ iku.nilai if iku.nilai is not none else '-' }}{% if iku.nilai is not none %}{{ iku.satuan }}{% endif %}</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:4px;">{{ iku.detail }}</div>
+    </div>
+    <form method="post" action="{{ url_for('mutu.simpan_target_iku') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="tahun" value="{{ tahun }}">
+      <input type="hidden" name="nomor_iku" value="{{ iku.nomor }}">
+      <div class="field-compact"><label>Target</label><input name="target_nilai" type="number" step="any" value="{{ iku.target if iku.target is not none else '' }}"></div>
+      {% if iku.cara == 'MANUAL' %}
+      <div class="field-compact"><label>Realisasi Manual (%)</label><input name="realisasi_manual" type="number" step="any" min="0" max="100" value="{{ iku.nilai if iku.nilai is not none else '' }}"></div>
+      {% endif %}
+      <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan</label><input name="catatan" value="{{ iku.catatan }}"></div>
+      <button class="btn-outline btn-block" type="submit" style="margin-top:8px;">💾 Simpan</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% elif tab == 'akreditasi' %}
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Total Kriteria</div>
+    <div class="val">{{ progres.total }}</div>
+    <div class="delta">LAMEMBA</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Kriteria Final</div>
+    <div class="val">{{ progres.final }}</div>
+    <div class="delta">siap diajukan</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Progres Keseluruhan</div>
+    <div class="val">{{ progres.persen }}%</div>
+    <div class="delta {% if progres.persen < 100 %}warn{% endif %}">dari 9 kriteria</div>
+  </div>
+</div>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Kriteria</th><th>PIC</th><th>Bukti</th><th>Status</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for r in progres.rows %}
+          <tr class="{% if kriteria_terpilih and kriteria_terpilih.id==r.id %}active{% endif %}">
+            <td style="padding-left:24px;"><span class="mono" style="font-size:11px;color:var(--muted);">Kriteria {{ r.nomor_kriteria }}</span><div class="nama">{{ r.nama_kriteria }}</div></td>
+            <td>{{ r.pic_nama or '-' }}</td>
+            <td class="mono">{{ r.n_bukti }}</td>
+            <td><span class="chip-status" style="{% if r.status=='Final' %}background:var(--success-soft);color:var(--success);{% elif r.status=='Draft Selesai' %}background:var(--warning-soft);color:var(--warning);{% else %}background:var(--canvas);color:var(--muted);{% endif %}">{{ r.status }}</span></td>
+            <td style="padding-right:24px;text-align:right;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('mutu.index', tab='akreditasi', kriteria=r.id) }}">Kelola</a>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    {% if kriteria_terpilih %}
+    <div class="card">
+      <h2>Kriteria {{ kriteria_terpilih.nomor_kriteria }}</h2>
+      <p class="card-sub">{{ kriteria_terpilih.nama_kriteria }}</p>
+      <form method="post" action="{{ url_for('mutu.simpan_kriteria') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="id" value="{{ kriteria_terpilih.id }}">
+        <div class="field-compact"><label>Status</label>
+          <select name="status">{% for s in status_kriteria_list %}<option value="{{ s }}" {% if kriteria_terpilih.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>PIC Penyusun</label>
+          <select name="pic_dosen_id">
+            <option value="">-</option>
+            {% for d in dosen_list %}<option value="{{ d.id }}" {% if kriteria_terpilih.pic_dosen_id==d.id %}selected{% endif %}>{{ d.nama }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan</label><textarea name="catatan" rows="3">{{ kriteria_terpilih.catatan or '' }}</textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+      </form>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h2>Bukti Dukung</h2>
+      {% for b in bukti_rows %}
+      <div class="list-row">
+        <div class="lt">{{ b.judul }}<small>{{ b.ukuran_kb }} KB</small></div>
+        <span>
+          <a class="btn-outline" style="padding:4px 8px;font-size:11px;" href="{{ url_for('mutu.unduh_bukti', bid=b.id) }}">⬇</a>
+          <form method="post" action="{{ url_for('mutu.hapus_bukti', bid=b.id) }}" style="display:inline;" onsubmit="return confirm('Hapus bukti {{ b.judul }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn-outline" style="padding:4px 8px;font-size:11px;color:var(--danger);">Hapus</button>
+          </form>
+        </span>
+      </div>
+      {% else %}
+      <p style="font-size:13px;color:var(--muted);">Belum ada bukti dukung.</p>
+      {% endfor %}
+      <form method="post" action="{{ url_for('mutu.unggah_bukti') }}" enctype="multipart/form-data" style="margin-top:12px;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="kriteria_id" value="{{ kriteria_terpilih.id }}">
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Judul</label><input name="judul" placeholder="mis. SK Penetapan Visi Misi"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>File *</label><input type="file" name="file_bukti" required></div>
+        <button class="btn-outline btn-block" type="submit" style="margin-top:8px;">⬆ Unggah Bukti</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% elif tab == 'audit' %}
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Siklus Berjalan</div>
+    <div class="val">{{ ringkasan.siklus_berjalan }}</div>
+    <div class="delta">Audit Mutu Internal</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Temuan Terbuka</div>
+    <div class="val">{{ ringkasan.temuan_terbuka }}</div>
+    <div class="delta {% if ringkasan.temuan_terbuka %}warn{% endif %}">seluruh siklus</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">KTS Mayor Terbuka</div>
+    <div class="val">{{ ringkasan.temuan_mayor_terbuka }}</div>
+    <div class="delta {% if ringkasan.temuan_mayor_terbuka %}danger{% endif %}">prioritas tinggi</div>
+  </div>
+</div>
+
+{% if reminder %}
+<div class="card">
+  <h2>🗓️ Reminder Tenggat Tindak Lanjut</h2>
+  {% for r in reminder %}
+  <div class="list-row">
+    <div class="lt">{{ r.uraian }}<small>{{ r.siklus_nama }} · {{ r.kategori }}{% if r.pic_nama %} · PIC: {{ r.pic_nama }}{% endif %}</small></div>
+    <span class="badge {{ 'danger' if r.status=='Lewat Tenggat' else 'warn' }}"><span class="dot"></span>{{ r.tenggat }} ({{ r.sisa_hari }}h)</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Siklus</th><th>Pelaksanaan</th><th>Auditor</th><th>Status</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for s in siklus_rows %}
+          <tr class="{% if siklus_terpilih and siklus_terpilih.id==s.id %}active{% endif %}">
+            <td style="padding-left:24px;"><div class="nama">{{ s.nama }}</div><div class="card-sub" style="margin:0;">{{ s.tahun_akademik or '-' }}</div></td>
+            <td class="mono">{{ s.tgl_pelaksanaan or '-' }}</td>
+            <td>{{ s.auditor or '-' }}</td>
+            <td><span class="chip-status" style="{% if s.status=='Selesai' %}background:var(--success-soft);color:var(--success);{% else %}background:var(--warning-soft);color:var(--warning);{% endif %}">{{ s.status }}</span></td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('mutu.index', tab='audit', siklus=s.id) }}">Kelola Temuan</a>
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('mutu.index', tab='audit', edit=s.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('mutu.hapus_siklus', sid=s.id) }}" style="display:inline;" onsubmit="return confirm('Hapus siklus {{ s.nama }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada siklus AMI.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah' if edit_siklus else 'Tambah' }} Siklus AMI</h2>
+      <form method="post" action="{{ url_for('mutu.simpan_siklus') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_siklus %}<input type="hidden" name="id" value="{{ edit_siklus.id }}">{% endif %}
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Nama Siklus *</label><input name="nama" value="{{ edit_siklus.nama if edit_siklus else '' }}" placeholder="mis. AMI Semester Ganjil 2026/2027" required></div>
+        <div class="field-compact"><label>Periode Akademik</label>
+          <select name="periode_akademik_id">
+            <option value="">— pilih periode —</option>
+            {% for p in daftar_periode %}
+            <option value="{{ p.id }}" {% if edit_siklus and edit_siklus.periode_akademik_id==p.id %}selected{% endif %}>{{ p.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Status</label>
+          <select name="status">{% for s in status_ami_siklus_list %}<option value="{{ s }}" {% if edit_siklus and edit_siklus.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Tgl Pelaksanaan</label><input name="tgl_pelaksanaan" type="date" value="{{ edit_siklus.tgl_pelaksanaan if edit_siklus else '' }}"></div>
+        <div class="field-compact"><label>Auditor</label><input name="auditor" value="{{ edit_siklus.auditor if edit_siklus else '' }}"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan</label><textarea name="catatan" rows="2">{{ edit_siklus.catatan if edit_siklus else '' }}</textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+        {% if edit_siklus %}<a class="btn-outline btn-block" href="{{ url_for('mutu.index', tab='audit') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if siklus_terpilih %}
+<div class="split" style="margin-top:16px;">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <h2 style="padding:16px 24px 0;">Temuan — {{ siklus_terpilih.nama }}</h2>
+      <table>
+        <thead><tr><th style="padding-left:24px;">Temuan</th><th>Kategori</th><th>PIC & Tenggat</th><th>Status</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for t in temuan_rows %}
+          <tr>
+            <td style="padding-left:24px;"><div class="nama">{{ t.uraian_temuan }}</div><div class="card-sub" style="margin:0;">{{ t.standar_spmi or '-' }}</div></td>
+            <td><span class="badge {{ 'danger' if t.kategori=='KTS Mayor' else ('warn' if t.kategori=='KTS Minor' else '') }}"><span class="dot"></span>{{ t.kategori }}</span></td>
+            <td style="font-size:12px;">{{ t.pic_nama or '-' }}<div style="color:var(--muted);">{{ t.tenggat or '-' }}</div></td>
+            <td><span class="chip-status" style="{% if t.status in ('Selesai','Terverifikasi') %}background:var(--success-soft);color:var(--success);{% else %}background:var(--warning-soft);color:var(--warning);{% endif %}">{{ t.status }}</span></td>
+            <td style="padding-right:24px;text-align:right;">
+              <form method="post" action="{{ url_for('mutu.hapus_temuan', tid=t.id) }}" style="display:inline;" onsubmit="return confirm('Hapus temuan ini?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada temuan untuk siklus ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>Catat Temuan</h2>
+      <form method="post" action="{{ url_for('mutu.simpan_temuan') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="siklus_id" value="{{ siklus_terpilih.id }}">
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Standar SPMI</label><input name="standar_spmi" placeholder="mis. Standar Pendidikan"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Uraian Temuan *</label><textarea name="uraian_temuan" rows="3" required></textarea></div>
+        <div class="field-compact"><label>Kategori</label>
+          <select name="kategori">{% for k in kategori_temuan_list %}<option value="{{ k }}">{{ k }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Status</label>
+          <select name="status">{% for s in status_temuan_list %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Akar Masalah</label><textarea name="akar_masalah" rows="2"></textarea></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Rencana Tindak Lanjut</label><textarea name="rencana_tindak_lanjut" rows="2"></textarea></div>
+        <div class="field-compact"><label>PIC</label>
+          <select name="pic_dosen_id">
+            <option value="">-</option>
+            {% for d in dosen_list %}<option value="{{ d.id }}">{{ d.nama }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Tenggat</label><input name="tenggat" type="date"></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan Temuan</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% elif tab == 'kelengkapan' %}
+<div class="card">
+  <h2>📋 Pemindai Kelengkapan Data</h2>
+  <p class="card-sub">Dihitung langsung dari tabel lintas modul — bukan berkas contoh, jadi selalu terkini</p>
+  {% for c in checks %}
+  <div class="list-row">
+    <div class="lt">{{ c.label }}</div>
+    {% if c.jumlah %}
+    <a class="badge warn" href="{{ url_for(c.endpoint, **c.params) }}"><span class="dot"></span>{{ c.jumlah }} data</a>
+    {% else %}
+    <span class="badge ok"><span class="dot"></span>Lengkap</span>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+{% elif tab == 'log' %}
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Total Aktivitas Tercatat</div>
+    <div class="val">{{ ringkasan.total }}</div>
+    <div class="delta">sejak aplikasi digunakan</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Aktivitas Hari Ini</div>
+    <div class="val">{{ ringkasan.hari_ini }}</div>
+    <div class="delta">seluruh modul</div>
+  </div>
+</div>
+
+<div class="card" style="padding:14px 24px;">
+  <form method="get" class="search">
+    <input type="hidden" name="tab" value="log">
+    <input name="cari" placeholder="Cari aksi, entitas, atau detail..." value="{{ cari }}">
+    <input name="dari" type="date" value="{{ tanggal_dari }}">
+    <input name="sampai" type="date" value="{{ tanggal_sampai }}">
+    <button class="btn-outline" type="submit">Terapkan</button>
+  </form>
+</div>
+
+<div class="card" style="padding:8px 0;">
+  <table>
+    <thead><tr><th style="padding-left:24px;">Waktu</th><th>Aksi</th><th>Entitas</th><th>Perubahan</th><th>Detail</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td class="mono" style="padding-left:24px;font-size:12px;white-space:nowrap;">{{ r.waktu }}</td>
+        <td><span class="badge"><span class="dot"></span>{{ r.aksi }}</span></td>
+        <td style="font-size:12.5px;color:var(--muted);">{% if r.entitas %}{{ r.entitas }}{% if r.entitas_id %} #{{ r.entitas_id }}{% endif %}{% else %}-{% endif %}</td>
+        <td style="font-size:12.5px;white-space:nowrap;">{% if r.nilai_lama is not none or r.nilai_baru is not none %}<span class="mono">{{ r.nilai_lama or '—' }} → {{ r.nilai_baru or '—' }}</span>{% else %}-{% endif %}</td>
+        <td style="font-size:12.5px;color:var(--muted);">{{ r.detail or '-' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada aktivitas yang cocok.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

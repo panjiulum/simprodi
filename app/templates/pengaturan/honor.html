@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Tarif Honor — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div>
+    <h1>Tarif Honor</h1>
+    <p>Dipakai otomatis oleh RKP Seminar, RKP Sidang & Rekap Honor Keuangan</p>
+  </div>
+</div>
+
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card" style="max-width:680px;">
+    <h2>Besaran Honor (Rupiah)</h2>
+    <p class="card-sub">Angka saja, tanpa "Rp" atau titik/koma. Berlaku untuk honor BARU yang terbentuk setelah disimpan — honor yang sudah terbentuk di tahap-tahap sebelumnya tidak ikut berubah.</p>
+    {% for key, label in bidang %}
+    <div class="field-compact">
+      <label>{{ label }}</label>
+      <input name="{{ key }}" value="{{ nilai[key] }}" inputmode="numeric">
+    </div>
+    {% endfor %}
+    <button class="btn-primary" type="submit" style="padding:10px 18px;margin-top:8px;">Simpan Perubahan</button>
+  </div>
+</form>
+{% endblock %}

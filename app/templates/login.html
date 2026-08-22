@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masuk — {{ APP_NAME }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+{% import "_icons.html" as icons %}
+<div class="login-page">
+  <div class="login-body">
+    <div class="login-left">
+      <div class="login-left-brand">
+        <div class="mark">
+          {% if logo_path %}<img src="{{ url_for('pengaturan.logo_preview') }}" alt="Logo">{% else %}{{ icons.svg('graduation-cap', 'ic') }}{% endif %}
+        </div>
+        <div>
+          <h1>{{ APP_SHORT_NAME or 'SIMPRODI' }}</h1>
+          <p>{{ nama_institusi or APP_NAME }}{% if nama_prodi %}<br>{{ nama_prodi }}{% endif %}</p>
+        </div>
+      </div>
+
+      <div class="login-left-mid">
+        <h2>Kelola Program Studi<br>Lebih Terintegrasi dan Rapi</h2>
+        <div class="rule"></div>
+        <p>Dari kurikulum &amp; OBE, akademik, SDM dosen, kerja sama mitra, hingga
+           penjaminan mutu — dalam satu sistem yang berjalan sepenuhnya di
+           perangkat ini, tanpa perlu koneksi internet.</p>
+        <div class="login-features">
+          <div class="f">{{ icons.svg('book-open', 'ic') }} Kurikulum &amp; OBE</div>
+          <div class="f">{{ icons.svg('users', 'ic') }} SDM &amp; Kinerja Dosen</div>
+          <div class="f">{{ icons.svg('handshake', 'ic') }} Kerja Sama &amp; Mitra</div>
+          <div class="f">{{ icons.svg('target', 'ic') }} Mutu, IKU &amp; Akreditasi</div>
+        </div>
+      </div>
+
+      <div class="login-left-foot">
+        {{ icons.svg('lock', 'ic') }} 100% offline · data tersimpan lokal di perangkat ini
+      </div>
+    </div>
+
+    <div class="login-right">
+      <div class="login-card">
+        <div class="login-card-head">
+          <div class="login-mark">
+            {% if logo_path %}<img src="{{ url_for('pengaturan.logo_preview') }}" alt="Logo">{% else %}{{ icons.svg('graduation-cap', 'ic') }}{% endif %}
+          </div>
+          <h1>{% if is_baru %}Selamat Datang{% else %}Masuk ke {{ APP_SHORT_NAME or 'SIMPRODI' }}{% endif %}</h1>
+          <p class="sub">{% if is_baru %}Buat username &amp; password admin untuk mulai memakai aplikasi{% else %}Masukkan username &amp; password untuk melanjutkan{% endif %}</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, msg in messages %}
+              <div class="flash flash-{{ category }}">{{ msg }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="post" id="login-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% if is_baru %}
+            <div class="field field-icon">
+              <label>Username</label>
+              <span class="fi">{{ icons.svg('user-check', 'ic') }}</span>
+              <input type="text" name="username" id="username" autofocus required autocomplete="username">
+            </div>
+            <div class="field field-icon has-toggle">
+              <label>Password Baru</label>
+              <span class="fi">{{ icons.svg('lock', 'ic') }}</span>
+              <input type="password" name="password1" id="password1" required minlength="4" autocomplete="new-password">
+              <button type="button" class="pw-toggle" data-toggle="password1" aria-label="Tampilkan password">{{ icons.svg('eye', 'ic') }}</button>
+            </div>
+            <div class="field field-icon has-toggle">
+              <label>Ulangi Password</label>
+              <span class="fi">{{ icons.svg('lock', 'ic') }}</span>
+              <input type="password" name="password2" id="password2" required minlength="4" autocomplete="new-password">
+              <button type="button" class="pw-toggle" data-toggle="password2" aria-label="Tampilkan password">{{ icons.svg('eye', 'ic') }}</button>
+              <p id="capslock-warn" class="capslock-warn" style="display:none;">{{ icons.svg('alert-triangle', 'ic') }} Caps Lock aktif</p>
+            </div>
+            <button class="btn-primary block login-submit" type="submit" id="login-submit-btn">
+              <span class="btn-label">Buat Akun &amp; Masuk</span>
+            </button>
+          {% else %}
+            <div class="field field-icon">
+              <label>Username</label>
+              <span class="fi">{{ icons.svg('user-check', 'ic') }}</span>
+              <input type="text" name="username" id="username" autofocus required autocomplete="username" {% if lockout_sisa %}disabled{% endif %}>
+            </div>
+            <div class="field field-icon has-toggle">
+              <label>Password</label>
+              <span class="fi">{{ icons.svg('lock', 'ic') }}</span>
+              <input type="password" name="password" id="password" required autocomplete="current-password" {% if lockout_sisa %}disabled{% endif %}>
+              <button type="button" class="pw-toggle" data-toggle="password" aria-label="Tampilkan password">{{ icons.svg('eye', 'ic') }}</button>
+              <p id="capslock-warn" class="capslock-warn" style="display:none;">{{ icons.svg('alert-triangle', 'ic') }} Caps Lock aktif</p>
+            </div>
+            <button class="btn-primary block login-submit" type="submit" id="login-submit-btn" {% if lockout_sisa %}disabled{% endif %}>
+              <span class="btn-label">{% if lockout_sisa %}Terkunci sementara ({{ (lockout_sisa // 60) + 1 }} menit){% else %}Masuk{% endif %}</span>
+            </button>
+          {% endif %}
+        </form>
+
+        <p class="login-foot">{{ icons.svg('lock', 'ic') }} 100% offline · data tersimpan lokal di perangkat ini</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-copyright">
+    &copy; {{ tahun_sekarang }} {{ APP_SHORT_NAME or 'SIMPRODI' }}{% if nama_institusi %} — {{ nama_institusi }}{% endif %}
+  </div>
+</div>
+
+<script>
+  var EYE_ICON = {{ icons.svg('eye', 'ic')|tojson }};
+  var EYE_OFF_ICON = {{ icons.svg('eye-off', 'ic')|tojson }};
+  document.querySelectorAll('.pw-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var input = document.getElementById(btn.getAttribute('data-toggle'));
+      if (!input) return;
+      var showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      btn.innerHTML = showing ? EYE_ICON : EYE_OFF_ICON;
+      btn.setAttribute('aria-label', showing ? 'Tampilkan password' : 'Sembunyikan password');
+    });
+  });
+
+  var warn = document.getElementById('capslock-warn');
+  if (warn) {
+    document.querySelectorAll('input[type="password"], input[type="text"]').forEach(function (input) {
+      function checkCaps(e) {
+        if (typeof e.getModifierState === 'function') {
+          warn.style.display = e.getModifierState('CapsLock') ? 'block' : 'none';
+        }
+      }
+      input.addEventListener('keydown', checkCaps);
+      input.addEventListener('keyup', checkCaps);
+    });
+  }
+
+  var form = document.getElementById('login-form');
+  if (form) {
+    form.addEventListener('submit', function () {
+      var btn = document.getElementById('login-submit-btn');
+      if (!btn) return;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="login-spin"></span><span class="btn-label">Memproses...</span>';
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Wisuda — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Alur Skripsi</div>
+<div class="page-head">
+  <div><h1>Wisuda</h1><p>Terisi otomatis saat Status Yudisium = "Terlaksana" dan No. SK sudah diisi</p></div>
+  <a class="btn-outline" href="{{ url_for('kelulusan.wisuda_ekspor', tahap=tahap) }}">📤 Ekspor Excel</a>
+</div>
+{% include "_tahap_filter.html" %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">NIM</th><th>Nama</th><th>Tahap</th><th>IPK</th><th>Predikat</th><th>Tgl Wisuda</th><th>No. Ijazah</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="nim" style="padding-left:24px;">{{ r.nim }}</td>
+            <td class="nama">{{ r.nama }}</td>
+            <td>{{ r.tahap or '-' }}</td>
+            <td class="mono">{{ r.ipk_final if r.ipk_final is not none else '' }}</td>
+            <td>{{ r.predikat }}</td>
+            <td class="mono">{{ r.tgl_wisuda }}</td>
+            <td class="mono">{{ r.no_ijazah }}</td>
+            <td style="padding-right:24px;text-align:right;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kelulusan.wisuda_list', edit=r.mahasiswa_id, tahap=tahap) }}">Lengkapi</a>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">Belum ada mahasiswa siap wisuda pada tahap ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>Lengkapi Data Wisuda</h2>
+      {% if edit_mhs %}
+      <p class="card-sub">{{ edit_mhs.nim }} - {{ edit_mhs.nama }}</p>
+      <form method="post" action="{{ url_for('kelulusan.wisuda_simpan') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="mahasiswa_id" value="{{ edit_mid }}">
+        <div class="field-compact"><label>Tgl Wisuda</label><input name="tgl_wisuda" value="{{ edit_row.tgl_wisuda if edit_row else '' }}"></div>
+        <div class="field-compact"><label>No. Ijazah</label><input name="no_ijazah" value="{{ edit_row.no_ijazah if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Catatan</label><input name="catatan" value="{{ edit_row.catatan if edit_row else '' }}"></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+      </form>
+      {% else %}
+      <p style="font-size:13px;color:var(--muted);">Pilih baris di tabel (klik "Lengkapi") untuk mengisi data wisuda.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

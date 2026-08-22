@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Nilai & OBE Assessment — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Akademik</div>
+<div class="page-head">
+  <div>
+    <h1>Nilai & OBE Assessment Engine</h1>
+    <p>Nilai per CPMK per mahasiswa, direkap otomatis jadi capaian CPL individu & program</p>
+  </div>
+</div>
+
+<form class="tab-row">
+  <a class="tab-item {% if tab=='peserta' %}active{% endif %}" href="{{ url_for('nilai.index', tab='peserta') }}">👥 Peserta Kelas</a>
+  <a class="tab-item {% if tab=='input' %}active{% endif %}" href="{{ url_for('nilai.index', tab='input') }}">✍️ Input Nilai</a>
+  <a class="tab-item {% if tab=='capaian-individu' %}active{% endif %}" href="{{ url_for('nilai.index', tab='capaian-individu') }}">🎯 Capaian CPL Individu</a>
+  <a class="tab-item {% if tab=='capaian-program' %}active{% endif %}" href="{{ url_for('nilai.index', tab='capaian-program') }}">📊 Capaian CPL Program</a>
+</form>
+
+{% if tab in ('peserta', 'input') %}
+<div class="card" style="padding:18px 24px 0;">
+  <h2 style="margin-bottom:2px;">Pilih Kelas</h2>
+  <div class="filter-chips" style="flex-wrap:wrap;margin:12px 0 18px;">
+    {% for j in jadwal_rows %}
+    <a class="filter-chip {% if jadwal_terpilih and jadwal_terpilih.id==j.id %}active{% endif %}" href="{{ url_for('nilai.index', tab=tab, jadwal=j.id) }}">{{ j.mk_kode }} · {{ j.kelas }} · {{ j.tahun_akademik }}</a>
+    {% else %}
+    <span style="font-size:13px;color:var(--muted);">Belum ada jadwal kelas — tambahkan dulu di menu Jadwal Kelas & BAP.</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if tab == 'peserta' and jadwal_terpilih %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">NIM</th><th>Nama</th><th>Nilai Akhir</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for p in peserta_rows %}
+          <tr>
+            <td class="nim" style="padding-left:24px;">{{ p.nim }}</td>
+            <td class="nama">{{ p.mhs_nama }}</td>
+            <td class="mono">{{ p.nilai_akhir if p.nilai_akhir is not none else '-' }} {% if p.nilai_huruf %}({{ p.nilai_huruf }}){% endif %}</td>
+            <td style="padding-right:24px;text-align:right;">
+              <form method="post" action="{{ url_for('nilai.hapus_peserta', kid=p.id) }}" onsubmit="return confirm('Hapus {{ p.mhs_nama }} dari kelas ini? Nilai CPMK terkait ikut terhapus.');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">Belum ada peserta di kelas ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>Tambah Peserta</h2>
+      <form method="post" action="{{ url_for('nilai.tambah_peserta') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="jadwal_kelas_id" value="{{ jadwal_terpilih.id }}">
+        <div class="field-compact"><label>Mahasiswa Aktif *</label>
+          <select name="mahasiswa_id" required>
+            <option value="">— pilih —</option>
+            {% for m in mahasiswa_belum_ikut %}
+            <option value="{{ m.id }}">{{ m.nim }} — {{ m.nama }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn-primary btn-block" type="submit">+ Tambah ke Kelas</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if tab == 'input' and jadwal_terpilih %}
+<div class="card" style="padding:18px 24px;">
+  <div class="filter-chips" style="flex-wrap:wrap;">
+    {% for p in peserta_rows %}
+    <a class="filter-chip {% if krs_terpilih and krs_terpilih.id==p.id %}active{% endif %}" href="{{ url_for('nilai.index', tab='input', jadwal=jadwal_terpilih.id, krs=p.id) }}">{{ p.nim }} — {{ p.mhs_nama }}</a>
+    {% else %}
+    <span style="font-size:13px;color:var(--muted);">Belum ada peserta — tambahkan dulu di tab Peserta Kelas.</span>
+    {% endfor %}
+  </div>
+</div>
+
+{% if krs_terpilih %}
+<div class="card" style="padding:18px 24px;">
+  <div class="filter-chips">
+    {% for j in jenis_asesmen_list %}
+    <a class="filter-chip {% if jenis_asesmen_terpilih==j %}active{% endif %}" href="{{ url_for('nilai.index', tab='input', jadwal=jadwal_terpilih.id, krs=krs_terpilih.id, asesmen=j) }}">{{ j }}</a>
+    {% endfor %}
+  </div>
+  <div class="hint">Pilih instrumen asesmen yang sedang diinput (Audit OBE: Assessment → Nilai). "Nilai Akhir" tetap jadi skor final per CPMK seperti biasa — instrumen lain opsional untuk merinci asal nilai.</div>
+</div>
+<div class="card">
+  <h2>{{ krs_terpilih.nim }} — {{ krs_terpilih.mhs_nama }}</h2>
+  <p class="card-sub">Nilai per CPMK mata kuliah {{ jadwal_terpilih.mk_kode }} — instrumen: <strong>{{ jenis_asesmen_terpilih }}</strong>, skala 0-100</p>
+  <form method="post" action="{{ url_for('nilai.simpan_nilai') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="krs_id" value="{{ krs_terpilih.id }}">
+    <input type="hidden" name="jadwal_kelas_id" value="{{ jadwal_terpilih.id }}">
+    <input type="hidden" name="jenis_asesmen" value="{{ jenis_asesmen_terpilih }}">
+    <table>
+      <thead><tr><th>CPMK</th><th>Deskripsi</th><th style="width:120px;">Nilai (0-100)</th><th>Instrumen Terisi</th></tr></thead>
+      <tbody>
+      {% for c in cpmk_rows %}
+        <tr>
+          <td class="nim">{{ c.kode }}</td>
+          <td>{{ c.deskripsi }}</td>
+          <td><input name="cpmk_{{ c.id }}" type="number" min="0" max="100" step="0.1" value="{{ nilai_map.get(c.id) if nilai_map.get(c.id) is not none else '' }}" style="width:90px;"></td>
+          <td style="font-size:12px;color:var(--muted);">{{ asesmen_terisi.get(c.id, [])|join(', ') or '-' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">Mata kuliah ini belum punya CPMK — tambahkan di menu Kurikulum & OBE.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div class="field-compact" style="max-width:220px;margin-top:14px;"><label>Nilai Akhir Mata Kuliah</label><input name="nilai_akhir" type="number" min="0" max="100" step="0.1" value="{{ krs_terpilih.nilai_akhir if krs_terpilih.nilai_akhir is not none else '' }}"></div>
+    <button class="btn-primary" type="submit" style="margin-top:10px;">💾 Simpan Nilai ({{ jenis_asesmen_terpilih }})</button>
+  </form>
+</div>
+{% endif %}
+{% endif %}
+
+{% if tab == 'capaian-individu' %}
+<div class="card" style="padding:18px 24px;">
+  <form method="get" class="form-row">
+    <input type="hidden" name="tab" value="capaian-individu">
+    <div class="field-compact" style="grid-column:1/-1;max-width:360px;"><label>Mahasiswa</label>
+      <select name="mahasiswa" onchange="this.form.submit()">
+        <option value="">— pilih mahasiswa —</option>
+        {% for m in mahasiswa_list %}
+        <option value="{{ m.id }}" {% if mahasiswa_terpilih and mahasiswa_terpilih.id==m.id %}selected{% endif %}>{{ m.nim }} — {{ m.nama }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+</div>
+
+{% if mahasiswa_terpilih %}
+<div class="card" style="padding:8px 0;">
+  <table>
+    <thead><tr><th style="padding-left:24px;">CPL</th><th>Kategori</th><th>Deskripsi</th><th>Rata-rata Nilai</th><th style="padding-right:24px;">Jumlah Nilai</th></tr></thead>
+    <tbody>
+    {% for c in capaian %}
+      <tr>
+        <td class="nim" style="padding-left:24px;">{{ c.cpl.kode }}</td>
+        <td><span class="chip-status" style="background:var(--primary-soft);color:var(--primary-dark);">{{ c.cpl.kategori }}</span></td>
+        <td>{{ c.cpl.deskripsi }}</td>
+        <td class="mono">{{ c.rata_rata if c.rata_rata is not none else 'belum ada nilai' }}</td>
+        <td class="mono" style="padding-right:24px;">{{ c.jumlah_nilai }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada CPL pada kurikulum aktif.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card"><p style="color:var(--muted);">Pilih mahasiswa untuk melihat capaian CPL individunya.</p></div>
+{% endif %}
+{% endif %}
+
+{% if tab == 'capaian-program' %}
+<div class="card" style="padding:18px 24px;">
+  <p class="card-sub">Capaian CPL {{ kur.nama if kur else '' }} digabung dari seluruh nilai CPMK yang sudah diinput di semua kelas. KKM per CPMK: {{ kkm }}.</p>
+</div>
+<div class="card" style="padding:8px 0;">
+  <table>
+    <thead><tr><th style="padding-left:24px;">CPL</th><th>Kategori</th><th>Deskripsi</th><th>Rata-rata Nilai</th><th>% Mahasiswa Tuntas</th><th style="padding-right:24px;">Jumlah Nilai</th></tr></thead>
+    <tbody>
+    {% for c in capaian %}
+      <tr>
+        <td class="nim" style="padding-left:24px;">{{ c.cpl.kode }}</td>
+        <td><span class="chip-status" style="background:var(--primary-soft);color:var(--primary-dark);">{{ c.cpl.kategori }}</span></td>
+        <td>{{ c.cpl.deskripsi }}</td>
+        <td class="mono">{{ c.rata_rata if c.rata_rata is not none else '-' }}</td>
+        <td>
+          {% if c.persen_tuntas is not none %}
+          <span class="chip-status" style="{% if c.persen_tuntas >= 70 %}background:var(--success-soft);color:var(--success);{% elif c.persen_tuntas >= 50 %}background:var(--warning-soft);color:var(--warning);{% else %}background:var(--danger-soft);color:var(--danger);{% endif %}">{{ c.persen_tuntas }}%</span>
+          {% else %}<span style="color:var(--muted);">belum ada nilai</span>{% endif %}
+        </td>
+        <td class="mono" style="padding-right:24px;">{{ c.jumlah_nilai }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Belum ada kurikulum aktif atau CPL.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

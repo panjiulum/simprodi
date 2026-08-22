@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Rekap Dosen Pembimbing — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Rekap & Laporan</div>
+<div class="page-head">
+  <div><h1>Rekap Dosen Pembimbing</h1><p>Auto-sync dari Penetapan Pembimbing + Seminar + Sidang. Status Sidang memakai logika LULUS-priority.</p></div>
+  <a class="btn-outline" href="{{ url_for('rekap.pembimbing_ekspor', tahap=tahap) }}">📤 Ekspor Excel</a>
+</div>
+{% include "_tahap_filter.html" %}
+<div class="card" style="padding:8px 0;overflow-x:auto;">
+  <table>
+    <thead><tr><th style="padding-left:24px;">Dosen</th><th>Peran</th><th>NIM</th><th>Nama Mahasiswa</th><th>Status Seminar</th><th style="padding-right:24px;">Status Sidang</th></tr></thead>
+    <tbody>
+    {% for dosen, peran, nim, nama, ss, sd in rows %}
+      <tr>
+        <td class="nama" style="padding-left:24px;">{{ dosen }}</td>
+        <td>{{ peran }}</td>
+        <td class="nim">{{ nim }}</td>
+        <td>{{ nama }}</td>
+        <td>{{ ss }}</td>
+        <td style="padding-right:24px;">{{ sd }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada data.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

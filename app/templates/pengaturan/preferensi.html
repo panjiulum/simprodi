@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Preferensi Tampilan — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div><h1>Preferensi Tampilan</h1><p>Kepadatan tabel, perilaku sidebar & rentang agenda — berlaku di seluruh aplikasi</p></div>
+</div>
+
+<form method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+<div class="card" style="max-width:680px;">
+  <h2>Kepadatan Tabel</h2>
+  <p class="card-sub">Mengatur jarak antar-baris di semua tabel & daftar (list-row) — pilih "Padat" kalau ingin melihat lebih banyak data sekaligus tanpa scroll.</p>
+  <div class="pref-choice-row">
+    {% for opt in PREF_DENSITAS_LIST %}
+    <label class="pref-choice {{ 'active' if nilai.pref_densitas == opt else '' }}">
+      <input type="radio" name="pref_densitas" value="{{ opt }}" {% if nilai.pref_densitas == opt %}checked{% endif %}>
+      <span>{{ opt }}</span>
+    </label>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card" style="max-width:680px;">
+  <h2>Mode Default Grup Sidebar</h2>
+  <p class="card-sub">Menentukan status buka/tutup grup menu di sidebar kiri setiap halaman dimuat. Grup yang sedang aktif selalu otomatis terbuka apapun pilihannya.</p>
+  <div class="field" style="max-width:420px;">
+    <select name="pref_sidebar_mode">
+      {% for kode, label in PREF_SIDEBAR_MODE_LIST %}
+      <option value="{{ kode }}" {% if nilai.pref_sidebar_mode == kode %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+<div class="card" style="max-width:680px;">
+  <h2>Rentang Agenda Mendatang</h2>
+  <p class="card-sub">Jumlah hari ke depan yang ditampilkan pada widget "Agenda Kalender Akademik" di Dashboard & Pusat Notifikasi (sebelumnya baku 7 hari).</p>
+  <div class="field" style="max-width:220px;">
+    <select name="pref_agenda_hari">
+      {% for n in PREF_AGENDA_HARI_LIST %}
+      <option value="{{ n }}" {% if nilai.pref_agenda_hari == n %}selected{% endif %}>{{ n }} hari</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="btn-primary" type="submit" style="padding:10px 18px;margin-top:6px;">Simpan Preferensi</button>
+</div>
+</form>
+{% endblock %}

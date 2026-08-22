@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Tahun Akademik — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div><h1>Tahun Akademik</h1><p>Satu tahun ajaran menaungi 3 periode (Ganjil/Genap/Antara) sekaligus, masing-masing dengan tahap/gelombang pendaftaran seminar &amp; sidang sendiri.</p></div>
+</div>
+
+{% if periode_aktif %}
+<div class="card" style="border-left:4px solid var(--ok, #16a34a);">
+  <p style="margin:0;"><strong>Periode berjalan saat ini:</strong> {{ periode_aktif.kode_tahun_ajaran }} — {{ periode_aktif.jenis }}</p>
+</div>
+{% else %}
+<div class="card" style="border-left:4px solid var(--warn, #ea580c);">
+  <p style="margin:0;color:var(--muted);">Belum ada periode akademik berstatus "Berjalan". Buka tahun ajaran baru di bawah, atau tandai salah satu periode sebagai "Berjalan".</p>
+  {% if tahun_akademik_aktif_lama %}<p style="margin:4px 0 0;color:var(--muted);font-size:13px;">Pengaturan lama (cache tampilan): <span class="mono">{{ tahun_akademik_aktif_lama }}</span></p>{% endif %}
+</div>
+{% endif %}
+
+<div class="card" style="max-width:560px;">
+  <h2>➕ Buka Tahun Ajaran Baru</h2>
+  <p class="card-sub">Membuat 1 tahun ajaran + 3 periode (Ganjil, Genap, Antara) sekaligus — idempoten, aman dipanggil lagi dengan kode yang sama.</p>
+  <form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="aksi" value="buka_tahun">
+    <div class="field"><label>Kode Tahun Ajaran</label><input name="kode" placeholder="2025/2026" required></div>
+    <div class="field"><label>Aktifkan Periode</label>
+      <select name="aktifkan">
+        {% for j in JENIS_PERIODE_LIST %}<option value="{{ j }}">{{ j }}</option>{% endfor %}
+      </select>
+    </div>
+    <button class="btn-primary" type="submit" style="padding:10px 18px;">Buka Tahun Ajaran</button>
+  </form>
+</div>
+
+{% for ta in tahun_ajaran_list %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <h2 style="margin:0;">{{ ta.kode }}</h2>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="badge {{ 'ok' if ta.status=='Aktif' else '' }}">{{ ta.status }}</span>
+      <details>
+        <summary class="btn-outline" style="display:inline-block;padding:4px 10px;font-size:12px;cursor:pointer;">✎ Ubah Kode</summary>
+        <form method="post" style="margin-top:8px;display:flex;gap:6px;align-items:center;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="aksi" value="ubah_kode_ta">
+          <input type="hidden" name="ta_id" value="{{ ta.id }}">
+          <input name="kode_baru" value="{{ ta.kode }}" placeholder="2025/2026" required style="min-width:140px;">
+          <button class="btn-primary" type="submit" style="padding:6px 12px;font-size:12px;">Simpan</button>
+        </form>
+        <p class="card-sub" style="margin:6px 0 0;font-size:11.5px;">Hanya mengubah label/penomoran kode — periode & data mahasiswa/dosen yang sudah tersinkron tidak terpengaruh. Tidak ada fitur hapus tahun ajaran/periode.</p>
+      </details>
+    </div>
+  </div>
+  <table style="margin-top:12px;">
+    <thead><tr><th>Periode</th><th>Status</th><th>Tahap/Gelombang Pendaftaran</th><th></th></tr></thead>
+    <tbody>
+    {% for p in periode_by_ta.get(ta.id, []) %}
+      <tr>
+        <td class="nama">{{ p.jenis }}</td>
+        <td>
+          <form method="post" style="display:flex;gap:6px;align-items:center;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="aksi" value="set_status_periode">
+            <input type="hidden" name="periode_id" value="{{ p.id }}">
+            <select name="status" onchange="this.form.submit()">
+              {% for s in STATUS_PERIODE_LIST %}<option value="{{ s }}" {% if p.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+            </select>
+          </form>
+        </td>
+        <td>
+          {% for t in tahap_by_periode.get(p.id, []) %}
+            <span class="badge" style="margin:2px;">#{{ t.urutan }} {{ t.nama }}
+              <form method="post" style="display:inline;" onsubmit="return confirm('Hapus tahap {{ t.nama }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="aksi" value="hapus_tahap">
+                <input type="hidden" name="tahap_id" value="{{ t.id }}">
+                <button type="submit" style="border:none;background:none;color:var(--danger);cursor:pointer;padding:0 0 0 4px;">✕</button>
+              </form>
+            </span>
+          {% else %}
+            <span style="color:var(--muted);font-size:13px;">Belum ada tahap</span>
+          {% endfor %}
+        </td>
+        <td>
+          <details>
+            <summary class="btn-outline" style="display:inline-block;padding:4px 10px;font-size:12px;cursor:pointer;">+ Tambah Tahap</summary>
+            <form method="post" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:end;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="aksi" value="tambah_tahap">
+              <input type="hidden" name="periode_id" value="{{ p.id }}">
+              <input name="nama_tahap" placeholder="Tahap 3 2025/2026" required style="min-width:180px;">
+              <input type="date" name="tgl_buka" title="Tanggal buka">
+              <input type="date" name="tgl_tutup" title="Tanggal tutup">
+              <button class="btn-primary" type="submit" style="padding:6px 12px;font-size:12px;">Tambah</button>
+            </form>
+          </details>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card"><p style="color:var(--muted);">Belum ada tahun ajaran. Buka yang pertama di atas.</p></div>
+{% endfor %}
+{% endblock %}

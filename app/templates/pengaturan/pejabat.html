@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Pejabat Struktural — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div>
+    <h1>Pejabat Struktural</h1>
+    <p>Direktori Rektor, Dekan, Kaprodi, dan pejabat struktural lain — dipakai sebagai sumber blok tanda tangan SK &amp; Surat</p>
+  </div>
+</div>
+
+{% if default_saat_ini %}
+<div class="card" style="border-left:4px solid var(--ok, #16a34a);">
+  <p style="margin:0;"><strong>Penandatangan default saat ini:</strong> {{ default_saat_ini }} — dipakai otomatis di SK Tugas Akhir &amp; Surat Umum.</p>
+</div>
+{% else %}
+<div class="card" style="border-left:4px solid var(--warn, #ea580c);">
+  <p style="margin:0;color:var(--muted);">Belum ada pejabat yang dijadikan penandatangan default. Tambahkan pejabat di bawah, lalu klik "Jadikan Default Penandatangan" pada baris yang sesuai.</p>
+</div>
+{% endif %}
+
+<datalist id="daftar-jabatan-struktural">
+  {% for j in DAFTAR_JABATAN_STRUKTURAL %}<option value="{{ j }}">{% endfor %}
+</datalist>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0 0;">
+      <table>
+        <thead>
+          <tr>
+            <th style="padding-left:24px;">Jabatan</th>
+            <th>Nama</th>
+            <th>Unit</th>
+            <th>NIP/NIDN</th>
+            <th>Status</th>
+            <th style="padding-right:24px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td style="padding-left:24px;"><span class="role-pill">{{ r.jabatan }}</span></td>
+            <td class="nama">{{ r.nama }}</td>
+            <td>{{ r.unit or '-' }}</td>
+            <td class="mono">{{ r.nip_nidn or '-' }}</td>
+            <td><span class="badge {{ 'ok' if r.aktif else '' }}"><span class="dot"></span>{{ 'Aktif' if r.aktif else 'Nonaktif' }}</span></td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <form method="post" action="{{ url_for('pengaturan.pejabat_jadikan_default', pid=r.id) }}" style="display:inline;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;" title="Jadikan penandatangan default SK &amp; Surat">✍️ Jadikan Default</button>
+              </form>
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('pengaturan.pejabat', edit=r.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('pengaturan.pejabat_hapus', pid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus data pejabat {{ r.nama }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Belum ada data pejabat struktural.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah Pejabat' if edit_row else 'Tambah Pejabat' }}</h2>
+      <p class="card-sub">Mis. Rektor, Dekan, atau Ketua Program Studi (Kaprodi)</p>
+      <form method="post" action="{{ url_for('pengaturan.pejabat_simpan') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_row %}<input type="hidden" name="id" value="{{ edit_row.id }}">{% endif %}
+        <div class="field-compact"><label>Jabatan *</label><input name="jabatan" list="daftar-jabatan-struktural" value="{{ edit_row.jabatan if edit_row else '' }}" required></div>
+        <div class="field-compact"><label>Nama Lengkap (dengan gelar) *</label><input name="nama" value="{{ edit_row.nama if edit_row else '' }}" placeholder="mis. Dr. Contoh Nama, M.Kom." required></div>
+        <div class="field-compact"><label>Unit</label><input name="unit" value="{{ edit_row.unit if edit_row else '' }}" placeholder="Nama fakultas/prodi (kosongkan jika tingkat institusi)"></div>
+        <div class="field-compact"><label>NIP / NIDN</label><input name="nip_nidn" value="{{ edit_row.nip_nidn if edit_row else '' }}"></div>
+        <div class="field-compact"><label>No. SK Pengangkatan</label><input name="no_sk_pengangkatan" value="{{ edit_row.no_sk_pengangkatan if edit_row else '' }}"></div>
+        <div class="field-compact"><label>TMT (Terhitung Mulai Tanggal)</label><input type="date" name="tmt" value="{{ edit_row.tmt if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Akhir Masa Jabatan</label><input type="date" name="masa_akhir" value="{{ edit_row.masa_akhir if edit_row else '' }}" placeholder="Kosongkan jika masih menjabat"></div>
+        <div class="field-compact"><label>Urutan Tampil</label><input type="number" name="urutan" value="{{ edit_row.urutan if edit_row else 0 }}" placeholder="0 = paling atas, mis. Rektor"></div>
+        <div class="chk-row"><input type="checkbox" name="aktif" id="aktif" {% if not edit_row or edit_row.aktif %}checked{% endif %}><label for="aktif">Aktif / masih menjabat</label></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+        {% if edit_row %}<a class="btn-outline btn-block" href="{{ url_for('pengaturan.pejabat') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

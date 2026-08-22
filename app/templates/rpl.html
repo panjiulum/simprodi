@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}RPL — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Akademik</div>
+<div class="page-head">
+  <div>
+    <h1>🧩 RPL — Rekognisi Pembelajaran Lampau</h1>
+    <p>Asesmen calon mahasiswa jalur RPL: verifikasi berkas, konversi SKS, dan keputusan penerimaan</p>
+  </div>
+</div>
+
+<form class="tab-row">
+  <a class="tab-item {% if tab=='pendaftar' %}active{% endif %}" href="{{ url_for('rpl.index', tab='pendaftar') }}">📋 Data Pendaftar</a>
+  <a class="tab-item {% if tab=='asesmen' %}active{% endif %}" href="{{ url_for('rpl.index', tab='asesmen') }}">🧮 Asesmen & Konversi SKS</a>
+  <a class="tab-item {% if tab=='dokumen' %}active{% endif %}" href="{{ url_for('rpl.index', tab='dokumen') }}">📁 Dokumen Pendukung</a>
+</form>
+
+{% if tab == 'pendaftar' %}
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Total Pendaftar</div>
+    <div class="val">{{ total }}</div>
+    <div class="delta">seluruh status</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Disetujui</div>
+    <div class="val">{{ jumlah_per_status.get('Disetujui', 0) }}</div>
+    <div class="delta">siap didaftarkan sebagai mahasiswa skema RPL</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Menunggu Verifikasi/Asesmen</div>
+    <div class="val">{{ jumlah_per_status.get('Verifikasi Berkas', 0) + jumlah_per_status.get('Asesmen Portofolio', 0) }}</div>
+    <div class="delta {% if jumlah_per_status.get('Verifikasi Berkas', 0) + jumlah_per_status.get('Asesmen Portofolio', 0) %}warn{% endif %}">perlu tindak lanjut</div>
+  </div>
+</div>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:18px 0 6px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;padding:0 24px 12px;">
+        <form class="filter-chips" method="get" style="margin:0;">
+          <a class="filter-chip {% if not status_filter %}active{% endif %}" href="{{ url_for('rpl.index', tab='pendaftar') }}">Semua</a>
+          {% for s in status_rpl_list %}
+          <a class="filter-chip {% if status_filter==s %}active{% endif %}" href="{{ url_for('rpl.index', tab='pendaftar', status=s) }}">{{ s }} ({{ jumlah_per_status.get(s, 0) }})</a>
+          {% endfor %}
+        </form>
+      </div>
+      <form method="get" class="search" style="padding:0 24px 14px;">
+        {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+        <input type="hidden" name="tab" value="pendaftar">
+        <input name="cari" placeholder="Cari nama atau asal instansi/pendidikan..." value="{{ cari }}">
+        <button class="btn-outline" type="submit">Cari</button>
+      </form>
+      <table>
+        <thead><tr>
+          <th style="padding-left:24px;">Nama Pendaftar</th><th>Asal Instansi/Pendidikan</th><th>Jenis Pengakuan</th><th>Status</th><th style="padding-right:24px;"></th>
+        </tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="nama" style="padding-left:24px;">{{ r.nama }}<div class="card-sub" style="margin:0;">{{ r.no_hp or '-' }}{% if r.email %} · {{ r.email }}{% endif %}</div></td>
+            <td>{{ r.asal_instansi_pendidikan or '-' }}<div style="font-size:11.5px;color:var(--muted);">{{ r.lama_pengalaman or '' }}</div></td>
+            <td style="font-size:12.5px;">{{ r.jenis_pengakuan }}</td>
+            <td><span class="badge {{ 'ok' if r.status=='Disetujui' else ('danger' if r.status=='Ditolak' else 'warn') }}"><span class="dot"></span>{{ r.status }}</span></td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('rpl.index', tab='asesmen', pendaftar=r.id) }}">Asesmen</a>
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('rpl.index', tab='pendaftar', edit=r.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('rpl.hapus_pendaftar', pid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus pendaftar {{ r.nama }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada pendaftar RPL{% if cari or status_filter %} yang cocok{% endif %}.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah' if edit_row else 'Tambah' }} Pendaftar RPL</h2>
+      <form method="post" action="{{ url_for('rpl.simpan_pendaftar') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_row %}<input type="hidden" name="id" value="{{ edit_row.id }}">{% endif %}
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Nama Lengkap *</label><input name="nama" value="{{ edit_row.nama if edit_row else '' }}" required></div>
+        <div class="field-compact"><label>No. Identitas (KTP/NIK)</label><input name="no_identitas" value="{{ edit_row.no_identitas if edit_row else '' }}"></div>
+        <div class="field-compact"><label>No. HP</label><input name="no_hp" value="{{ edit_row.no_hp if edit_row else '' }}"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Email</label><input name="email" type="email" value="{{ edit_row.email if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Jenis Pengakuan</label>
+          <select name="jenis_pengakuan">{% for j in jenis_pengakuan_list %}<option value="{{ j }}" {% if edit_row and edit_row.jenis_pengakuan==j %}selected{% endif %}>{{ j }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Lama Pengalaman</label><input name="lama_pengalaman" placeholder="mis. 5 Tahun" value="{{ edit_row.lama_pengalaman if edit_row else '' }}"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Asal Instansi/Pendidikan</label><input name="asal_instansi_pendidikan" value="{{ edit_row.asal_instansi_pendidikan if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Status Asesmen</label>
+          <select name="status">{% for s in status_rpl_list %}<option value="{{ s }}" {% if edit_row and edit_row.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Tautkan ke Mahasiswa (jika sudah terdaftar)</label><input name="mahasiswa_id" type="number" min="1" value="{{ edit_row.mahasiswa_id if edit_row and edit_row.mahasiswa_id else '' }}" placeholder="ID mahasiswa (opsional)"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan Asesor</label><textarea name="catatan_asesor" rows="2">{{ edit_row.catatan_asesor if edit_row else '' }}</textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+        {% if edit_row %}<a class="btn-outline btn-block" href="{{ url_for('rpl.index', tab='pendaftar') }}">Batal</a>{% endif %}
+      </form>
+      <p class="hint">Jika status diubah menjadi "Disetujui", pendaftaran resmi sebagai mahasiswa (NIM dsb) tetap dilakukan manual lewat menu Data Mahasiswa dengan skema "RPL".</p>
+    </div>
+  </div>
+</div>
+
+{% elif tab == 'asesmen' %}
+<div class="card" style="padding:14px 24px;">
+  <div class="filter-chips" style="margin:0;flex-wrap:wrap;">
+    {% for p in pendaftar_list %}
+    <a class="filter-chip {% if pendaftar_terpilih and pendaftar_terpilih.id==p.id %}active{% endif %}" href="{{ url_for('rpl.index', tab='asesmen', pendaftar=p.id) }}">{{ p.nama }} · {{ p.status }}</a>
+    {% else %}
+    <span style="font-size:13px;color:var(--muted);">Belum ada pendaftar RPL — tambahkan dulu di tab Data Pendaftar.</span>
+    {% endfor %}
+  </div>
+</div>
+
+{% if pendaftar_terpilih %}
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Total SKS Diakui</div>
+    <div class="val">{{ total_sks_diakui }}</div>
+    <div class="delta">dari {{ konversi_rows|length }} mata kuliah kurikulum aktif</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Status Asesmen</div>
+    <div class="val" style="font-size:20px;">{{ pendaftar_terpilih.status }}</div>
+    <div class="delta">{{ pendaftar_terpilih.jenis_pengakuan }}</div>
+  </div>
+</div>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Mata Kuliah</th><th>SKS Diakui</th><th>Nilai Konversi</th><th>Dasar Pengakuan</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for k in konversi_rows %}
+          <tr>
+            <td style="padding-left:24px;"><span class="nim">{{ k.mk_kode }}</span><div class="nama">{{ k.mk_nama }}</div></td>
+            <td class="mono">{{ k.sks_diakui }} / {{ k.mk_sks }}</td>
+            <td class="mono">{{ k.nilai_konversi or '-' }}</td>
+            <td style="font-size:12.5px;">{{ k.dasar_pengakuan or '-' }}</td>
+            <td style="padding-right:24px;text-align:right;">
+              <form method="post" action="{{ url_for('rpl.hapus_konversi', kid=k.id) }}" style="display:inline;" onsubmit="return confirm('Hapus konversi {{ k.mk_kode }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada mata kuliah yang dikonversi.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>Tambah/Ubah Konversi SKS</h2>
+      <form method="post" action="{{ url_for('rpl.simpan_konversi') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="rpl_pendaftar_id" value="{{ pendaftar_terpilih.id }}">
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Mata Kuliah *</label>
+          <select name="mata_kuliah_id" required>
+            <option value="">— pilih —</option>
+            {% for m in mk_list %}
+            <option value="{{ m.id }}">{{ m.kode }} — {{ m.nama }} ({{ m.sks }} SKS)</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>SKS Diakui</label><input name="sks_diakui" type="number" min="0" value="0"></div>
+        <div class="field-compact"><label>Nilai Konversi</label><input name="nilai_konversi" placeholder="mis. B+"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Dasar Pengakuan</label><input name="dasar_pengakuan" placeholder="mis. Transkrip D3 Semester 3, Sertifikat Kompetensi"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan</label><textarea name="catatan" rows="2"></textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan Konversi</button>
+      </form>
+      <p class="hint">Menyimpan dengan mata kuliah yang sama akan memperbarui baris konversi yang sudah ada (bukan menambah baris baru).</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% elif tab == 'dokumen' %}
+<div class="card" style="padding:14px 24px;">
+  <div class="filter-chips" style="margin:0;flex-wrap:wrap;">
+    {% for p in pendaftar_list %}
+    <a class="filter-chip {% if pendaftar_terpilih and pendaftar_terpilih.id==p.id %}active{% endif %}" href="{{ url_for('rpl.index', tab='dokumen', pendaftar=p.id) }}">{{ p.nama }}</a>
+    {% else %}
+    <span style="font-size:13px;color:var(--muted);">Belum ada pendaftar RPL — tambahkan dulu di tab Data Pendaftar.</span>
+    {% endfor %}
+  </div>
+</div>
+
+{% if pendaftar_terpilih %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Judul</th><th>Jenis</th><th>Ukuran</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for d in dokumen_rows %}
+          <tr>
+            <td class="nama" style="padding-left:24px;">{{ d.judul or d.nama_file_asli }}</td>
+            <td>{{ d.jenis_dokumen }}</td>
+            <td class="mono">{{ d.ukuran_kb }} KB</td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('rpl.unduh_dokumen', did=d.id) }}">⬇ Unduh</a>
+              <form method="post" action="{{ url_for('rpl.hapus_dokumen', did=d.id) }}" style="display:inline;" onsubmit="return confirm('Hapus dokumen {{ d.judul or d.nama_file_asli }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">Belum ada dokumen untuk pendaftar ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>Unggah Dokumen</h2>
+      <form method="post" action="{{ url_for('rpl.unggah_dokumen') }}" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="rpl_pendaftar_id" value="{{ pendaftar_terpilih.id }}">
+        <div class="field-compact"><label>Jenis Dokumen</label>
+          <select name="jenis_dokumen">{% for j in jenis_dokumen_rpl_list %}<option value="{{ j }}">{{ j }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Judul</label><input name="judul" placeholder="mis. Ijazah D3 Sistem Informasi"></div>
+        <div class="field-compact">
+          <label>File *</label>
+          <input type="file" name="file_dokumen" required>
+          <div class="hint">Format: PDF, Word, Excel, PowerPoint, gambar, ZIP/RAR (Maks sesuai kapasitas disk)</div>
+        </div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">⬆ Unggah</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

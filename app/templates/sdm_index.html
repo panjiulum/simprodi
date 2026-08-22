@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Kinerja Dosen — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">SDM & Kinerja Dosen</div>
+<div class="page-head">
+  <div><h1>Dashboard Kinerja Dosen</h1><p>Kesiapan data BKD/SISTER & reminder masa berlaku per dosen — dipisah Homebase vs Dosen Luar (Audit poin 3), karena tanggung jawab kinerja penuh hanya berlaku untuk dosen homebase.</p></div>
+</div>
+
+{% if not ringkasan %}
+<div class="card"><p style="color:var(--muted);">Belum ada data dosen aktif. Tambahkan dosen dulu di menu <a href="{{ url_for('dosen.list_view') }}">Data Dosen</a>.</p></div>
+{% endif %}
+
+{% macro kartu_dosen(r) %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h2 style="margin-bottom:2px;">{{ r.dosen.nama }}</h2>
+      <p class="card-sub" style="margin:0;">{{ r.dosen.nidn or '-' }} · {{ r.dosen.jabatan_fungsional or 'Jabatan fungsional belum diisi' }}
+        {% if r.status_homebase != 'Homebase' %} · <span class="badge">{{ r.status_homebase }}{% if r.dosen.unit_asal %} ({{ r.dosen.unit_asal }}){% endif %}</span>{% endif %}
+      </p>
+    </div>
+    <a class="btn-primary" style="padding:8px 16px;font-size:13px;" href="{{ url_for('sdm.detail', dosen_id=r.dosen.id) }}">Kelola Data →</a>
+  </div>
+  <div class="kpi-row" style="margin-top:16px;">
+    <div class="kpi-box"><div class="v">{{ r.kesiapan_bkd }}%</div><div class="l">Kesiapan BKD</div></div>
+    <div class="kpi-box"><div class="v">{{ r.kesiapan_sister }}%</div><div class="l">Kesiapan SISTER</div></div>
+    <div class="kpi-box"><div class="v">{{ r.n_luaran }}</div><div class="l">Total Luaran</div></div>
+    <div class="kpi-box"><div class="v">{{ r.n_reminder }}</div><div class="l">Perlu Perhatian</div></div>
+  </div>
+  {% if r.n_reminder %}
+  <div style="margin-top:10px;"><span class="badge warn"><span class="dot"></span>Ada {{ r.n_reminder }} item mendekati/lewat masa berlaku — lihat tab Peran Akademik/Luaran</span></div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% if ringkasan_homebase %}
+<div class="eyebrow" style="margin-top:8px;">🏠 Dosen Homebase — tanggung jawab kinerja penuh ({{ ringkasan_homebase|length }})</div>
+{% for r in ringkasan_homebase %}{{ kartu_dosen(r) }}{% endfor %}
+{% endif %}
+
+{% if ringkasan_luar %}
+<div class="eyebrow" style="margin-top:24px;">🔗 Dosen Luar Prodi/Fakultas/PT — kontribusi parsial ({{ ringkasan_luar|length }})</div>
+{% for r in ringkasan_luar %}{{ kartu_dosen(r) }}{% endfor %}
+{% endif %}
+{% endblock %}

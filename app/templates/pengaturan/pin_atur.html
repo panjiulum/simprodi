@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}PIN Fitur Krusial — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Pengaturan</div>
+<div class="page-head">
+  <div><h1>PIN Fitur Krusial</h1><p>Lapis proteksi tambahan (terpisah dari password login) untuk membuka menu berisiko tinggi seperti Import Data & Restore Backup.</p></div>
+</div>
+
+{% if wajib %}
+<div class="card" style="border-left:4px solid var(--warn, #ea580c);">
+  <p style="margin:0;color:var(--muted);">Menu yang Anda tuju dilindungi PIN, dan PIN belum pernah diatur di aplikasi ini. Atur PIN terlebih dahulu di bawah ini — Anda akan diarahkan kembali ke menu tersebut setelah selesai.</p>
+</div>
+{% endif %}
+
+<div class="card" style="max-width:420px;">
+  <h2>{{ 'Ganti PIN' if sudah_ada else 'Atur PIN' }}</h2>
+  <p class="card-sub">4-8 digit angka, wajib berbeda dari password login.</p>
+  <form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if sudah_ada %}
+    <div class="field"><label>PIN Lama</label><input type="password" inputmode="numeric" name="pin_lama" required></div>
+    {% endif %}
+    <div class="field"><label>PIN Baru</label><input type="password" inputmode="numeric" pattern="[0-9]*" name="pin1" required minlength="4" maxlength="8"></div>
+    <div class="field"><label>Ulangi PIN Baru</label><input type="password" inputmode="numeric" pattern="[0-9]*" name="pin2" required minlength="4" maxlength="8"></div>
+    <button class="btn-primary" type="submit" style="padding:10px 18px;">Simpan PIN</button>
+  </form>
+</div>
+{% endblock %}

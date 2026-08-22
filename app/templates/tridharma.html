@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block title %}Tri Dharma — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Tri Dharma</div>
+<div class="page-head">
+  <div>
+    <h1>🧪 Penelitian, PKM & Publikasi/HKI</h1>
+    <p>Rekap lintas dosen dari data Modul SDM & Kinerja Dosen — bukan pencatatan ganda, murni tampilan tingkat program studi</p>
+  </div>
+</div>
+
+<form class="tab-row">
+  <a class="tab-item {% if tab=='dashboard' %}active{% endif %}" href="{{ url_for('tridharma.index', tab='dashboard') }}">📊 Dashboard</a>
+  <a class="tab-item {% if tab=='penelitian_pkm' %}active{% endif %}" href="{{ url_for('tridharma.index', tab='penelitian_pkm') }}">🧪 Penelitian & PKM</a>
+  <a class="tab-item {% if tab=='luaran' %}active{% endif %}" href="{{ url_for('tridharma.index', tab='luaran') }}">📄 Luaran Akademik</a>
+  <a class="tab-item {% if tab=='pendidikan_penunjang' %}active{% endif %}" href="{{ url_for('tridharma.index', tab='pendidikan_penunjang') }}">🎓 Pendidikan & Penunjang</a>
+</form>
+
+{% if tab == 'dashboard' %}
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Penelitian Aktif</div>
+    <div class="val">{{ ringkasan.penelitian_aktif }}</div>
+    <div class="delta">belum berstatus Selesai/Completed/Published</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">PKM Aktif</div>
+    <div class="val">{{ ringkasan.pkm_aktif }}</div>
+    <div class="delta">belum berstatus Selesai/Completed/Published</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Publikasi Tahun Ini</div>
+    <div class="val">{{ ringkasan.publikasi_tahun_ini }}</div>
+    <div class="delta">{{ tahun_singkat or 'tahun akademik belum diatur' }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">HKI Terdaftar</div>
+    <div class="val">{{ ringkasan.hki_terdaftar }}</div>
+    <div class="delta">seluruh tahun</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2>Sebaran Luaran Akademik</h2>
+    <p class="card-sub">Jumlah riil per jenis luaran (luaran_dosen), seluruh dosen</p>
+    {% if sebaran %}
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+      {% for s in sebaran %}
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;margin-bottom:4px;">
+          <span>{{ s.jenis_luaran }}</span><span style="color:var(--muted);">{{ s.jumlah }} data</span>
+        </div>
+        <div style="width:100%;background:var(--canvas);height:8px;border-radius:99px;overflow:hidden;">
+          <div style="height:100%;border-radius:99px;background:var(--primary);width:{{ s.persen }}%;"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="font-size:13px;color:var(--muted);">Belum ada data luaran dosen.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>⚠️ Dosen Belum Capai Target ({{ tahun_singkat or '-' }})</h2>
+    <p class="card-sub">Realisasi luaran vs Target Kinerja Dosen tahun berjalan</p>
+    {% if dosen_belum_target %}
+      {% for d in dosen_belum_target %}
+      <div class="list-row">
+        <div class="lt">{{ d.dosen_nama }}<small>{{ d.kategori }}</small></div>
+        <span class="badge warn"><span class="dot"></span>{{ d.realisasi }}/{{ d.target }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="font-size:13px;color:var(--muted);">{% if tahun_singkat %}Semua dosen dengan target tahun ini sudah tercapai, atau belum ada target diatur.{% else %}Tahun akademik aktif belum diatur di Pengaturan.{% endif %}</p>
+    {% endif %}
+    <a class="btn-outline" style="margin-top:10px;display:inline-block;padding:6px 14px;font-size:12.5px;" href="{{ url_for('sdm.index') }}">Kelola Target Kinerja Dosen →</a>
+  </div>
+</div>
+
+<div class="card">
+  <h2>🗓️ Reminder Tenggat Laporan Hibah</h2>
+  <p class="card-sub">Dari tinjauan institusional (tab Penelitian & PKM) dengan tenggat laporan ≤ {{ 14 }} hari</p>
+  {% if reminder %}
+    {% for r in reminder %}
+    <div class="list-row">
+      <div class="lt">{{ r.judul }}<small>{{ r.jenis }} · {{ r.dosen_nama }}</small></div>
+      <span class="badge {{ 'danger' if r.status=='Lewat Tenggat' else 'warn' }}"><span class="dot"></span>{{ r.tenggat }} ({{ r.sisa_hari }}h)</span>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="font-size:13px;color:var(--muted);">Tidak ada tenggat laporan yang mendekat — isi kolom "Tenggat Laporan" saat meninjau usulan di tab Penelitian & PKM untuk mengaktifkan reminder ini.</p>
+  {% endif %}
+</div>
+
+{% elif tab == 'penelitian_pkm' %}
+<div class="card" style="padding:18px 24px;">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;">
+    <form class="filter-chips" style="margin:0;">
+      <input type="hidden" name="tab" value="penelitian_pkm">
+      <a class="filter-chip {% if not jenis_filter %}active{% endif %}" href="{{ url_for('tridharma.index', tab='penelitian_pkm') }}">Semua Jenis</a>
+      <a class="filter-chip {% if jenis_filter=='Penelitian' %}active{% endif %}" href="{{ url_for('tridharma.index', tab='penelitian_pkm', jenis='Penelitian') }}">Penelitian</a>
+      <a class="filter-chip {% if jenis_filter=='PKM' %}active{% endif %}" href="{{ url_for('tridharma.index', tab='penelitian_pkm', jenis='PKM') }}">PKM</a>
+    </form>
+  </div>
+  <form method="get" class="search" style="margin-top:12px;">
+    <input type="hidden" name="tab" value="penelitian_pkm">
+    {% if jenis_filter %}<input type="hidden" name="jenis" value="{{ jenis_filter }}">{% endif %}
+    <select name="status" onchange="this.form.submit()" style="max-width:180px;">
+      <option value="">Semua Status</option>
+      {% for s in status_aktivitas_list %}<option value="{{ s }}" {% if status_filter==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+    <input name="tahun" placeholder="Tahun (mis. 2026)" value="{{ tahun_filter }}" style="max-width:160px;">
+    <input name="cari" placeholder="Cari judul, dosen, atau skema..." value="{{ cari }}">
+    <button class="btn-outline" type="submit">Terapkan</button>
+  </form>
+</div>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr>
+          <th style="padding-left:24px;">Judul</th><th>Dosen</th><th>Status</th><th>Tinjauan</th><th style="padding-right:24px;"></th>
+        </tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr class="{% if item_terpilih and item_terpilih.jenis==r.jenis and item_terpilih.id==r.id %}active{% endif %}">
+            <td style="padding-left:24px;">
+              <span class="badge {{ 'ok' if r.jenis=='Penelitian' else '' }}" style="margin-bottom:4px;{% if r.jenis=='PKM' %}background:var(--violet-soft);color:var(--violet);{% endif %}"><span class="dot"></span>{{ r.jenis }}</span>
+              <div class="nama">{{ r.judul }}</div>
+              <div class="card-sub" style="margin:0;">{{ r.skema or '-' }} · {{ r.tahun_akademik or '-' }}</div>
+            </td>
+            <td>{{ r.dosen_nama }}</td>
+            <td><span class="chip-status" style="{% if r.status in ('Selesai','Completed','Published') %}background:var(--success-soft);color:var(--success);{% else %}background:var(--warning-soft);color:var(--warning);{% endif %}">{{ r.status or '-' }}</span></td>
+            <td><span class="badge {{ 'ok' if r.status_tinjauan=='Disetujui' else ('danger' if r.status_tinjauan=='Ditolak' else '') }}"><span class="dot"></span>{{ r.status_tinjauan or 'Belum Ditinjau' }}</span></td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('tridharma.index', tab='penelitian_pkm', jenis=jenis_filter, status=status_filter, tahun=tahun_filter, cari=cari, item_jenis=r.jenis, item_id=r.id) }}">Tinjau</a>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada data penelitian/PKM{% if cari or status_filter or tahun_filter %} yang cocok{% endif %} — tambahkan lewat menu SDM & Kinerja Dosen.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    {% if item_terpilih %}
+    <div class="card">
+      <h2>Tinjauan Institusional</h2>
+      <p class="card-sub">{{ item_terpilih.judul }}<br>{{ item_terpilih.jenis }} · {{ item_terpilih.dosen_nama }} · {{ item_terpilih.skema or '-' }}</p>
+      <form method="post" action="{{ url_for('tridharma.simpan_tinjauan') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="jenis" value="{{ item_terpilih.jenis }}">
+        <input type="hidden" name="item_id" value="{{ item_terpilih.id }}">
+        <div class="field-compact"><label>Status Tinjauan</label>
+          <select name="status_tinjauan">{% for s in status_tinjauan_list %}<option value="{{ s }}" {% if item_terpilih.status_tinjauan==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Ditinjau Oleh</label><input name="ditinjau_oleh" value="{{ item_terpilih.ditinjau_oleh or '' }}" placeholder="mis. Kaprodi / GKM"></div>
+        <div class="field-compact"><label>Tanggal Tinjauan</label><input name="tgl_tinjauan" type="date"></div>
+        <div class="field-compact"><label>Tenggat Laporan</label><input name="tenggat_laporan" type="date" value="{{ item_terpilih.tenggat_laporan or '' }}"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan Tinjauan</label><textarea name="catatan_tinjauan" rows="3">{{ item_terpilih.catatan_tinjauan or '' }}</textarea></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan Tinjauan</button>
+      </form>
+      <p class="hint">Status & data usulan ini (judul, skema, dana, dsb) diinput dosen lewat menu SDM & Kinerja Dosen — tinjauan di sini murni keputusan/catatan institusional, tidak mengubah data aslinya.</p>
+    </div>
+    {% else %}
+    <div class="card">
+      <h2>Tinjauan Institusional</h2>
+      <p class="card-sub">Pilih salah satu usulan di daftar untuk mencatat tinjauan (status, catatan, tenggat laporan).</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% elif tab == 'luaran' %}
+<div class="card" style="padding:18px 24px;">
+  <form class="filter-chips" style="margin:0;flex-wrap:wrap;">
+    <input type="hidden" name="tab" value="luaran">
+    <a class="filter-chip {% if not jenis_filter %}active{% endif %}" href="{{ url_for('tridharma.index', tab='luaran') }}">Semua Jenis</a>
+    {% for j in jenis_luaran_list %}
+    <a class="filter-chip {% if jenis_filter==j %}active{% endif %}" href="{{ url_for('tridharma.index', tab='luaran', jenis=j) }}">{{ j }}</a>
+    {% endfor %}
+  </form>
+  <form method="get" class="search" style="margin-top:12px;">
+    <input type="hidden" name="tab" value="luaran">
+    {% if jenis_filter %}<input type="hidden" name="jenis" value="{{ jenis_filter }}">{% endif %}
+    <select name="status" onchange="this.form.submit()" style="max-width:180px;">
+      <option value="">Semua Status</option>
+      {% for s in status_aktivitas_list %}<option value="{{ s }}" {% if status_filter==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+    <input name="tahun" placeholder="Tahun (mis. 2026)" value="{{ tahun_filter }}" style="max-width:160px;">
+    <input name="cari" placeholder="Cari judul, dosen, atau nomor identitas..." value="{{ cari }}">
+    <button class="btn-outline" type="submit">Terapkan</button>
+  </form>
+</div>
+
+<div class="card" style="padding:8px 0;">
+  <table>
+    <thead><tr>
+      <th style="padding-left:24px;">Judul/Nama</th><th>Dosen</th><th>Jenis & Identitas</th><th>Status</th><th style="padding-right:24px;"></th>
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td style="padding-left:24px;"><div class="nama">{{ r.judul }}</div><div class="card-sub" style="margin:0;">{{ r.tahun_akademik or '-' }}</div></td>
+        <td>{{ r.dosen_nama }}</td>
+        <td><span class="badge"><span class="dot"></span>{{ r.jenis_luaran }}</span><div class="mono" style="font-size:11px;color:var(--muted);margin-top:3px;">{{ r.nomor_identitas or '-' }}</div></td>
+        <td><span class="chip-status" style="{% if r.status in ('Selesai','Completed','Published') %}background:var(--success-soft);color:var(--success);{% else %}background:var(--warning-soft);color:var(--warning);{% endif %}">{{ r.status or '-' }}</span></td>
+        <td style="padding-right:24px;text-align:right;">
+          <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('sdm.detail', dosen_id=r.dosen_id, tab='luaran', edit=r.id) }}">Edit di SDM →</a>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada data luaran{% if cari or jenis_filter or status_filter or tahun_filter %} yang cocok{% endif %} — tambahkan lewat menu SDM & Kinerja Dosen.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% elif tab == 'pendidikan_penunjang' %}
+<div class="card" style="padding:14px 24px;">
+  <form method="get" class="search" style="margin:0;">
+    <input type="hidden" name="tab" value="pendidikan_penunjang">
+    <input name="tahun" placeholder="Filter tahun akademik (mis. 2025-2026)" value="{{ tahun_filter }}">
+    <button class="btn-outline" type="submit">Terapkan</button>
+  </form>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2>🎓 Pendidikan & Pengajaran</h2>
+    <p class="card-sub">Rekap lintas dosen dari SDM & Kinerja Dosen</p>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Dosen</th><th>Mata Kuliah</th><th>SKS</th><th>Tahun</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for r in pendidikan_rows %}
+          <tr>
+            <td>{{ r.dosen_nama }}</td>
+            <td>{{ r.mata_kuliah or '-' }}</td>
+            <td class="mono">{{ r.sks or '-' }}</td>
+            <td class="mono">{{ r.tahun_akademik or '-' }}</td>
+            <td><span class="chip-status" style="{% if r.status in ('Selesai','Completed','Published') %}background:var(--success-soft);color:var(--success);{% else %}background:var(--warning-soft);color:var(--warning);{% endif %}">{{ r.status or '-' }}</span></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px;">Belum ada data.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🧭 Aktivitas Penunjang</h2>
+    <p class="card-sub">Reviewer, organisasi profesi, narasumber, dll — lintas dosen</p>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Dosen</th><th>Jenis</th><th>Kegiatan/Instansi</th><th>Tahun</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for r in penunjang_rows %}
+          <tr>
+            <td>{{ r.dosen_nama }}</td>
+            <td>{{ r.jenis_penunjang or '-' }}</td>
+            <td>{{ r.nama_kegiatan }}</td>
+            <td class="mono">{{ r.tahun_akademik or '-' }}</td>
+            <td><span class="chip-status" style="{% if r.status in ('Selesai','Completed','Published') %}background:var(--success-soft);color:var(--success);{% else %}background:var(--warning-soft);color:var(--warning);{% endif %}">{{ r.status or '-' }}</span></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px;">Belum ada data.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

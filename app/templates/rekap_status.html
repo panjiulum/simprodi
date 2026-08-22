@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Rekap Status Mahasiswa — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Rekap & Laporan</div>
+<div class="page-head">
+  <div><h1>Rekap Status Seminar & Sidang</h1></div>
+  <a class="btn-outline" href="{{ url_for('rekap.status_ekspor') }}">📤 Ekspor Excel</a>
+</div>
+<div class="kpi-row">
+  <div class="kpi-box"><div class="v">{{ d.total }}</div><div class="l">Total (ber-SK)</div></div>
+  <div class="kpi-box"><div class="v">{{ d.sudah_seminar }}</div><div class="l">Sudah Seminar</div></div>
+  <div class="kpi-box"><div class="v">{{ d.belum_seminar }}</div><div class="l">Belum Seminar</div></div>
+  <div class="kpi-box"><div class="v">{{ d.sudah_sidang }}</div><div class="l">Sudah Sidang</div></div>
+</div>
+<div class="kpi-row">
+  <div class="kpi-box"><div class="v">{{ d.belum_sidang }}</div><div class="l">Belum Sidang</div></div>
+  <div class="kpi-box"><div class="v">{{ d.lulus }}</div><div class="l">Lulus Sidang</div></div>
+  <div class="kpi-box"><div class="v">{{ d.tidak_lulus }}</div><div class="l">Tidak Lulus</div></div>
+  <div class="kpi-box"><div class="v">{{ d.tunda }}</div><div class="l">Tunda</div></div>
+</div>
+<div class="card" style="padding:8px 0;overflow-x:auto;">
+  <table>
+    <thead><tr><th style="padding-left:24px;">NIM</th><th>Nama</th><th>Status Seminar</th><th style="padding-right:24px;">Status Sidang</th></tr></thead>
+    <tbody>
+    {% for x in d.detail %}
+      <tr><td class="nim" style="padding-left:24px;">{{ x.nim }}</td><td class="nama">{{ x.nama }}</td><td>{{ x.status_seminar }}</td><td style="padding-right:24px;">{{ x.status_sidang }}</td></tr>
+    {% else %}
+      <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada data.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

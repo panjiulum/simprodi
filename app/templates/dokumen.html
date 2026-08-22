@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Document Center — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Document Center</div>
+<div class="page-head">
+  <div><h1>Document Center</h1><p>{{ total }} dokumen tersimpan · arsip SK, MoU, kurikulum, akreditasi & dokumen prodi lainnya</p></div>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Total Dokumen</div>
+    <div class="val">{{ total }}</div>
+    <div class="delta">seluruh kategori</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Kategori Terbanyak</div>
+    <div class="val" style="font-size:16px;">{{ kategori_terbanyak or '-' }}</div>
+    <div class="delta">{{ jumlah_per_kategori.get(kategori_terbanyak, 0) if kategori_terbanyak else 0 }} dokumen</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Diunggah Bulan Ini</div>
+    <div class="val">{{ bulan_ini }}</div>
+    <div class="delta">dokumen baru</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Total Ukuran Arsip</div>
+    <div class="val">{{ total_ukuran_mb }} <span style="font-size:14px;">MB</span></div>
+    <div class="delta">seluruh file tersimpan</div>
+  </div>
+</div>
+
+<div class="card" style="padding:18px 24px;">
+  <div class="filter-chips">
+    <a class="filter-chip {% if not kategori_filter %}active{% endif %}" href="{{ url_for('dokumen.index', cari=cari or None) }}">Semua ({{ total }})</a>
+    {% for k in kategori_list %}
+    <a class="filter-chip {% if kategori_filter==k %}active{% endif %}" href="{{ url_for('dokumen.index', kategori=k, cari=cari or None) }}">{{ k }} ({{ jumlah_per_kategori.get(k, 0) }})</a>
+    {% endfor %}
+  </div>
+  <form method="get" class="search" style="margin-top:12px;width:auto;display:flex;gap:8px;">
+    {% if kategori_filter %}<input type="hidden" name="kategori" value="{{ kategori_filter }}">{% endif %}
+    <input name="cari" style="flex:1;min-width:200px;" placeholder="Cari judul, nomor, atau sumber/instansi..." value="{{ cari }}">
+    <button class="btn-outline" type="submit">Cari</button>
+    {% if cari or kategori_filter %}<a class="btn-outline" href="{{ url_for('dokumen.index') }}">Reset</a>{% endif %}
+  </form>
+</div>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr>
+          <th style="padding-left:24px;">Judul</th><th>Kategori</th><th>Nomor</th><th>Tanggal</th><th>Ukuran</th><th style="padding-right:24px;"></th>
+        </tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="nama" style="padding-left:24px;">{{ r.judul }}<div class="card-sub" style="margin:0;">{{ r.sumber_instansi or '-' }}{% if r.keterangan %} · {{ r.keterangan }}{% endif %}</div></td>
+            <td><span class="badge"><span class="dot"></span>{{ r.kategori }}</span></td>
+            <td class="mono">{{ r.nomor_dokumen or '-' }}</td>
+            <td class="mono">{{ r.tgl_dokumen or '-' }}</td>
+            <td class="mono">{{ r.ukuran_kb }} KB</td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('dokumen.unduh', did=r.id) }}">⬇ Unduh</a>
+              <form method="post" action="{{ url_for('dokumen.hapus', did=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus dokumen {{ r.judul }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Belum ada dokumen{% if cari or kategori_filter %} yang cocok{% endif %}.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="split-form">
+    <div class="card">
+      <h2>Unggah Dokumen</h2>
+      <p class="card-sub">File tersimpan aman di arsip lokal prodi</p>
+      <form method="post" action="{{ url_for('dokumen.unggah') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field-compact"><label>Judul Dokumen *</label><input name="judul" required></div>
+        <div class="field-compact"><label>Kategori</label>
+          <select name="kategori">{% for k in kategori_list %}<option value="{{ k }}">{{ k }}</option>{% endfor %}</select>
+        </div>
+        <div class="field-compact"><label>Nomor Dokumen</label><input name="nomor_dokumen"></div>
+        <div class="field-compact"><label>Tanggal Dokumen</label><input type="date" name="tgl_dokumen"></div>
+        <div class="field-compact"><label>Sumber/Instansi</label><input name="sumber_instansi"></div>
+        <div class="field-compact"><label>Keterangan</label><textarea name="keterangan" rows="2"></textarea></div>
+        <div class="field-compact">
+          <label>File *</label>
+          <input type="file" name="file_dokumen" required>
+          <div class="hint">Format: PDF, Word, Excel, PowerPoint, gambar, ZIP/RAR</div>
+        </div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">⬆ Unggah</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

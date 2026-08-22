@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Cetak Surat — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Rekap & Laporan</div>
+<div class="page-head">
+  <div><h1>🖨️ Cetak Surat (SK)</h1><p>Buat draf SK/Undangan dalam format Word (.docx) siap-cetak, terisi otomatis dari data mahasiswa yang dipilih.</p></div>
+</div>
+<div class="card" style="max-width:520px;">
+  <form method="post" action="{{ url_for('surat.buat') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label>Jenis Surat</label>
+      <select name="jenis">
+        {% for j in jenis_list %}<option value="{{ j }}">{{ j }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Mahasiswa</label>
+      <select name="mahasiswa_id" required>
+        <option value="">- pilih -</option>
+        {% for m in mhs_list %}<option value="{{ m.id }}">{{ m.nim }} - {{ m.nama }}</option>{% endfor %}
+      </select>
+    </div>
+    <button class="btn-primary" type="submit" style="padding:10px 18px;">📄 Buat Dokumen Word (.docx)</button>
+  </form>
+  <p class="hint">
+    <b>SK Pembimbing</b> butuh data Penetapan Pembimbing sudah diisi.<br>
+    <b>SK Yudisium</b> butuh mahasiswa berstatus LULUS Sidang.<br>
+    <b>Undangan Seminar/Sidang</b> butuh jadwal Seminar/Sidang sudah diisi.
+  </p>
+</div>
+{% endblock %}

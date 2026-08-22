@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Verifikasi PIN — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Keamanan</div>
+<div class="page-head">
+  <div><h1>Verifikasi PIN</h1><p>Menu ini dilindungi PIN tambahan — masukkan PIN untuk melanjutkan.</p></div>
+</div>
+
+<div class="card" style="max-width:360px;">
+  <form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label>PIN</label>
+      <input type="password" inputmode="numeric" pattern="[0-9]*" name="pin" autofocus required {% if lockout_sisa %}disabled{% endif %}>
+    </div>
+    <button class="btn-primary btn-block" type="submit" style="padding:10px 18px;" {% if lockout_sisa %}disabled{% endif %}>
+      {% if lockout_sisa %}Terkunci sementara ({{ (lockout_sisa // 60) + 1 }} menit){% else %}Lanjutkan{% endif %}
+    </button>
+  </form>
+  <p class="card-sub" style="margin-top:12px;"><a href="{{ url_for('dashboard.index') }}">Batal, kembali ke Dashboard</a></p>
+</div>
+{% endblock %}

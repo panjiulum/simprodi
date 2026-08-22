@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ judul }} — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">{{ kategori }}</div>
+<div class="page-head">
+  <div>
+    <h1>{{ judul }}</h1>
+    <p>Modul referensi dari roadmap pengembangan SIMPRODI</p>
+  </div>
+</div>
+
+<div class="card" style="text-align:center;padding:56px 32px;">
+  <div style="width:56px;height:56px;border-radius:16px;background:var(--primary-soft);color:var(--primary-dark);
+    display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 18px;">🛠️</div>
+  <h2 style="margin-bottom:8px;">Modul ini sedang dalam pengembangan</h2>
+  <p class="card-sub" style="max-width:480px;margin:0 auto 18px;">{{ deskripsi }}</p>
+  <p style="font-size:12.5px;color:var(--muted);max-width:480px;margin:0 auto;">
+    Modul ini tampil di menu sebagai bagian dari peta jalan (roadmap) sistem.
+    Belum ada data yang disimpan di sini — begitu skema & logikanya dibangun,
+    menu ini akan digantikan dengan modul aktif sepenuhnya berbasis data
+    SIMPRODI.
+  </p>
+  <a href="{{ url_for('dashboard.index') }}" class="btn-outline" style="margin-top:22px;">← Kembali ke Dashboard</a>
+</div>
+{% endblock %}

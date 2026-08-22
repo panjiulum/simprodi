@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Data Ruangan — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Data Master</div>
+<div class="page-head">
+  <div><h1>Data Ruangan</h1><p>{{ rows|length }} ruangan · dipakai untuk deteksi bentrok jadwal Seminar/Sidang</p></div>
+</div>
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Nama</th><th>Kapasitas</th><th>Keterangan</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="nama" style="padding-left:24px;">{{ r.nama }}</td>
+            <td class="mono">{{ r.kapasitas }}</td>
+            <td>{{ r.keterangan }}</td>
+            <td style="padding-right:24px;text-align:right;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('ruangan.list_view', edit=r.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('ruangan.hapus', rid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus ruangan {{ r.nama }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">Belum ada data ruangan.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah Ruangan' if edit_row else 'Tambah Ruangan' }}</h2>
+      <form method="post" action="{{ url_for('ruangan.simpan') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_row %}<input type="hidden" name="id" value="{{ edit_row.id }}">{% endif %}
+        <div class="field-compact"><label>Nama Ruangan *</label><input name="nama" value="{{ edit_row.nama if edit_row else '' }}" required></div>
+        <div class="field-compact"><label>Kapasitas</label><input name="kapasitas" value="{{ edit_row.kapasitas if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Keterangan</label><input name="keterangan" value="{{ edit_row.keterangan if edit_row else '' }}"></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan</button>
+        {% if edit_row %}<a class="btn-outline btn-block" href="{{ url_for('ruangan.list_view') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

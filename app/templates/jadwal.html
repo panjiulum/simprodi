@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}Jadwal Kelas & BAP — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Akademik</div>
+<div class="page-head">
+  <div>
+    <h1>Jadwal Kelas & BAP</h1>
+    <p>Jadwal kelas per tahun akademik dan Berita Acara Perkuliahan (monitoring realisasi materi)</p>
+  </div>
+</div>
+
+<form class="tab-row">
+  <a class="tab-item {% if tab=='kelas' %}active{% endif %}" href="{{ url_for('jadwal.index', tab='kelas') }}">🗓️ Jadwal Kelas</a>
+  <a class="tab-item {% if tab=='bap' %}active{% endif %}" href="{{ url_for('jadwal.index', tab='bap') }}">📋 BAP (Realisasi Materi)</a>
+</form>
+
+{% if tab == 'kelas' %}
+<div class="card" style="padding:18px 24px;">
+  <form class="filter-chips" method="get" style="margin:0;">
+    <input type="hidden" name="tab" value="kelas">
+    <a class="filter-chip {% if not tahun_filter %}active{% endif %}" href="{{ url_for('jadwal.index', tab='kelas') }}">Semua Tahun</a>
+    {% for t in daftar_tahun %}
+    <a class="filter-chip {% if tahun_filter==t %}active{% endif %}" href="{{ url_for('jadwal.index', tab='kelas', tahun_akademik=t) }}">{{ t }}</a>
+    {% endfor %}
+  </form>
+</div>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Mata Kuliah</th><th>Kelas</th><th>Tahun/Smt</th><th>Dosen</th><th>Jadwal</th><th>Realisasi</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td style="padding-left:24px;"><span class="nim">{{ r.mk_kode }}</span><div class="nama">{{ r.mk_nama }}</div></td>
+            <td class="mono">{{ r.kelas }}</td>
+            <td>{{ r.tahun_akademik }}<div style="font-size:11.5px;color:var(--muted);">{{ r.semester_ajaran }}</div></td>
+            <td>{{ r.dosen_nama or '-' }}</td>
+            <td style="font-size:12.5px;">{{ r.hari or '-' }}{% if r.jam_mulai %} {{ r.jam_mulai }}-{{ r.jam_selesai }}{% endif %}<div style="color:var(--muted);">{{ r.ruangan_nama or '-' }}</div></td>
+            <td>
+              <span class="chip-status" style="{% if r.realisasi.persen >= 80 %}background:var(--success-soft);color:var(--success);{% elif r.realisasi.persen >= 50 %}background:var(--warning-soft);color:var(--warning);{% else %}background:var(--danger-soft);color:var(--danger);{% endif %}">{{ r.realisasi.terlaksana }}/{{ r.realisasi.rencana }} ({{ r.realisasi.persen }}%)</span>
+            </td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('jadwal.index', tab='kelas', edit=r.id) }}">Edit</a>
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('jadwal.index', tab='bap', jadwal=r.id) }}">BAP</a>
+              <form method="post" action="{{ url_for('jadwal.hapus_kelas', kid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus jadwal {{ r.mk_kode }} kelas {{ r.kelas }}? BAP & KRS terkait ikut terhapus.');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;">Belum ada jadwal kelas.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah Jadwal Kelas' if edit_row else 'Tambah Jadwal Kelas' }}</h2>
+      <form method="post" action="{{ url_for('jadwal.simpan_kelas') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_row %}<input type="hidden" name="id" value="{{ edit_row.id }}">{% endif %}
+        <div class="field-compact"><label>Mata Kuliah *</label>
+          <select name="mata_kuliah_id" required>
+            <option value="">— pilih —</option>
+            {% for m in mk_list %}
+            <option value="{{ m.id }}" {% if edit_row and edit_row.mata_kuliah_id==m.id %}selected{% endif %}>{{ m.kode }} — {{ m.nama }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact">
+          <label>Periode Akademik *</label>
+          <select name="periode_akademik_id" required>
+            <option value="">— pilih periode —</option>
+            {% for p in daftar_periode %}
+            <option value="{{ p.id }}" {% if edit_row and edit_row.periode_akademik_id==p.id %}selected{% endif %}>{{ p.label }}</option>
+            {% endfor %}
+          </select>
+          {% if not daftar_periode %}<small class="card-sub" style="display:block;margin-top:4px;">Belum ada tahun ajaran dibuka — buka dulu di Pengaturan → Tahun Akademik.</small>
+          {% elif edit_row %}<small class="card-sub" style="display:block;margin-top:4px;">Saat ini: {{ edit_row.tahun_akademik }} - {{ edit_row.semester_ajaran }}</small>{% endif %}
+        </div>
+        <div class="field-compact"><label>Kelas</label><input name="kelas" value="{{ edit_row.kelas if edit_row else 'A' }}"></div>
+        <div class="field-compact"><label>Dosen Pengampu</label>
+          <select name="dosen_id">
+            <option value="">— belum ditentukan —</option>
+            {% for d in dosen_list %}
+            <option value="{{ d.id }}" {% if edit_row and edit_row.dosen_id==d.id %}selected{% endif %}>{{ d.nama }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Hari</label>
+          <select name="hari">
+            <option value="">-</option>
+            {% for h in hari_list %}
+            <option value="{{ h }}" {% if edit_row and edit_row.hari==h %}selected{% endif %}>{{ h }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Jam Mulai</label><input name="jam_mulai" type="time" value="{{ edit_row.jam_mulai if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Jam Selesai</label><input name="jam_selesai" type="time" value="{{ edit_row.jam_selesai if edit_row else '' }}"></div>
+        <div class="field-compact"><label>Ruangan</label>
+          <select name="ruangan_id">
+            <option value="">-</option>
+            {% for r in ruangan_list %}
+            <option value="{{ r.id }}" {% if edit_row and edit_row.ruangan_id==r.id %}selected{% endif %}>{{ r.nama }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Jumlah Pertemuan Rencana</label><input name="jumlah_pertemuan_rencana" type="number" min="1" max="20" value="{{ edit_row.jumlah_pertemuan_rencana if edit_row else 16 }}"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Keterangan</label><input name="keterangan" value="{{ edit_row.keterangan if edit_row else '' }}"></div>
+        <button class="btn-primary btn-block" type="submit">💾 Simpan Jadwal Kelas</button>
+        {% if edit_row %}<a class="btn-outline btn-block" href="{{ url_for('jadwal.index', tab='kelas') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+
+{% elif tab == 'bap' %}
+<div class="card" style="padding:18px 24px 0;">
+  <h2 style="margin-bottom:2px;">Pilih Kelas</h2>
+  <p class="card-sub">Berita Acara Perkuliahan dicatat per pertemuan untuk memantau realisasi materi terhadap RPS</p>
+  <div class="filter-chips" style="flex-wrap:wrap;margin:12px 0 18px;">
+    {% for j in jadwal_rows %}
+    <a class="filter-chip {% if jadwal_terpilih and jadwal_terpilih.id==j.id %}active{% endif %}" href="{{ url_for('jadwal.index', tab='bap', jadwal=j.id) }}">{{ j.mk_kode }} · {{ j.kelas }} · {{ j.tahun_akademik }}</a>
+    {% else %}
+    <span style="font-size:13px;color:var(--muted);">Belum ada jadwal kelas — tambahkan dulu di tab Jadwal Kelas.</span>
+    {% endfor %}
+  </div>
+</div>
+
+{% if jadwal_terpilih %}
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Pertemuan Terlaksana</div>
+    <div class="val">{{ realisasi.terlaksana }} / {{ realisasi.rencana }}</div>
+    <div class="delta {% if realisasi.persen < 80 %}warn{% endif %}">{{ realisasi.persen }}% realisasi materi</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Total Tercatat di BAP</div>
+    <div class="val">{{ realisasi.tercatat }}</div>
+    <div class="delta">termasuk pertemuan ditunda/dosen pengganti</div>
+  </div>
+</div>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Pertemuan</th><th>Tanggal</th><th>Materi / Sub-CPMK</th><th>Hadir</th><th>Status</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for b in bap_rows %}
+          <tr>
+            <td class="mono" style="padding-left:24px;">{{ b.pertemuan_ke }}</td>
+            <td class="mono">{{ b.tanggal or '-' }}</td>
+            <td>{{ b.materi or '-' }}{% if b.sub_cpmk_kode %}<div style="font-size:11.5px;color:var(--muted);">{{ b.sub_cpmk_kode }}</div>{% endif %}</td>
+            <td class="mono">{{ b.jumlah_hadir if b.jumlah_hadir is not none else '-' }}</td>
+            <td><span class="chip-status" style="{% if b.status=='Terlaksana' %}background:var(--success-soft);color:var(--success);{% elif b.status=='Ditunda' %}background:var(--danger-soft);color:var(--danger);{% else %}background:var(--warning-soft);color:var(--warning);{% endif %}">{{ b.status }}</span></td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <form method="post" action="{{ url_for('jadwal.hapus_bap', bid=b.id) }}" style="display:inline;" onsubmit="return confirm('Hapus catatan pertemuan ke-{{ b.pertemuan_ke }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Belum ada catatan BAP untuk kelas ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="split-form">
+    <div class="card">
+      <h2>Catat Pertemuan</h2>
+      <form method="post" action="{{ url_for('jadwal.simpan_bap') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="jadwal_kelas_id" value="{{ jadwal_terpilih.id }}">
+        <div class="field-compact"><label>Pertemuan Ke *</label><input name="pertemuan_ke" type="number" min="1" value="{{ pertemuan_berikutnya }}" required></div>
+        <div class="field-compact"><label>Tanggal</label><input name="tanggal" type="date"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Materi</label><input name="materi" placeholder="Ringkasan materi pertemuan ini"></div>
+        <div class="field-compact"><label>Rujukan Sub-CPMK</label>
+          <select name="sub_cpmk_id">
+            <option value="">-</option>
+            {% for s in sub_cpmk_list %}
+            <option value="{{ s.id }}">{{ s.cpmk_kode }} · {{ s.kode }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Jumlah Hadir</label><input name="jumlah_hadir" type="number" min="0"></div>
+        <div class="field-compact"><label>Status</label>
+          <select name="status">
+            {% for s in status_bap_list %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Dosen Pengganti (jika ada)</label><input name="dosen_pengganti"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Catatan</label><input name="catatan"></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:8px;">💾 Simpan BAP</button>
+      </form>
+      <p class="hint">Menyimpan dengan nomor pertemuan yang sama akan menambah baris baru — hapus baris lama dulu jika ingin mengoreksi.</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

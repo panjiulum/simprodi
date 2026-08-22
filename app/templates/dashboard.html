@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Utama</div>
+<div class="page-head">
+  <div>
+    <h1>Selamat datang kembali 👋</h1>
+    <p>{{ nama_prodi }}{% if tahun_akademik_aktif %} · Tahun Akademik {{ tahun_akademik_aktif }}{% endif %}</p>
+  </div>
+</div>
+
+<!-- Audit Menyeluruh — PHASE 7: Dashboard Control Center. 6 kartu di bawah
+     ini menjawab "apa yang paling butuh perhatian sekarang" dari SATU
+     tempat -- KPI (kesehatan umum), Risk (masalah yang membesar), Deadline
+     (tenggat waktu), Workflow (proses yang tertahan), Quality (mutu/OBE),
+     Evidence (kelengkapan arsip bukti). Semua angkanya baca-saja dari
+     query yang sama dgn kartu per-modul di bawahnya (tidak ada logika
+     baru) -- ini murni pengelompokan ulang supaya yang mendesak langsung
+     terlihat tanpa menyisir belasan kartu satu-satu. -->
+<div class="stat-row">
+  {% for k in kpi %}
+  <div class="stat-card">
+    <div class="lbl">{{ k.label }}</div>
+    <div class="val">{{ k.value }}</div>
+    <div class="delta">{{ k.detail }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2>⚠️ Risk</h2>
+    <p class="card-sub">Masalah operasional yang sedang membesar</p>
+    {% for r in risk %}
+    <div class="list-row">
+      <div class="lt">{{ r.label }}</div>
+      {% if r.link %}<a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for(r.link) }}">{{ r.link_label }} →</a>
+      {% else %}<span class="badge {% if r.level=='ok' %}ok{% elif r.level=='danger' %}danger{% else %}warn{% endif %}"><span class="dot"></span>{{ r.level }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h2>⏰ Deadline</h2>
+    <p class="card-sub">Tenggat waktu yang mendekat atau sudah lewat</p>
+    {% for d in deadline %}
+    <div class="list-row">
+      <div class="lt">{{ d.label }}</div>
+      {% if d.link %}<a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for(d.link) }}">{{ d.link_label }} →</a>
+      {% else %}<span class="badge {% if d.level=='ok' %}ok{% elif d.level=='danger' %}danger{% else %}warn{% endif %}"><span class="dot"></span>{{ d.level }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2>🔄 Workflow</h2>
+    <p class="card-sub">Proses yang tertahan, menunggu tindakan berikutnya</p>
+    {% for w in workflow %}
+    <div class="list-row">
+      <div class="lt">{{ w.label }}</div>
+      {% if w.link %}<a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for(w.link) }}">{{ w.link_label }} →</a>
+      {% else %}<span class="badge ok"><span class="dot"></span>{{ w.level }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h2>🎯 Quality</h2>
+    <p class="card-sub">Capaian mutu & OBE kurikulum aktif</p>
+    {% for q in quality %}
+    <div class="list-row">
+      <div class="lt">{{ q.label }}</div>
+      <span class="badge {% if q.level=='ok' %}ok{% else %}warn{% endif %}"><span class="dot"></span>{{ q.value }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>📁 Evidence</h2>
+  <p class="card-sub">Kelengkapan arsip bukti — siap ditunjukkan saat audit/akreditasi</p>
+  <div class="stat-row" style="margin-top:4px;">
+    {% for e in evidence %}
+    <div class="stat-card">
+      <div class="lbl">{{ e.label }}</div>
+      <div class="val" style="font-size:22px;">{{ e.value }}</div>
+      <div class="delta">{{ e.detail }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Alur Skripsi — Posisi Mahasiswa Saat Ini</h2>
+  <p class="card-sub">Jumlah baris data di tiap tahap, dari pengajuan judul sampai wisuda</p>
+  <div class="rail">
+    {% for step in rail %}
+    <div class="rail-step {% if step.count > 0 %}filled{% endif %}">
+      <div class="rail-node">{{ step.count }}</div>
+      <div class="rail-label">{{ step.label }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2>Jadwal Mendatang</h2>
+    <p class="card-sub">7 hari ke depan</p>
+    {% if jadwal %}
+      {% for s in jadwal %}
+      <div class="list-row">
+        <div class="lt">{{ s.jenis }} — {{ s.nama }}<small>NIM {{ s.nim }} · {{ s.jam or '-' }}</small></div>
+        <div class="rt">{{ s.tgl }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="font-size:13px;color:var(--muted);">Tidak ada jadwal dalam 7 hari ke depan.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Notifikasi</h2>
+    <p class="card-sub">Perlu perhatian</p>
+    {% for n in notifikasi %}
+    <div class="list-row">
+      <div class="lt">{{ n.judul }}<small>{{ n.detail }}</small></div>
+      <span class="badge {% if n.level == 'warning' %}warn{% elif n.level == 'ok' %}ok{% elif n.level == 'danger' %}danger{% else %}warn{% endif %}"><span class="dot"></span>{{ n.level }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if agenda_kalender %}
+<div class="card">
+  <h2>📅 Agenda Kalender Akademik</h2>
+  <p class="card-sub">{{ pref_agenda_hari or 7 }} hari ke depan — ujian, rapat, deadline & kegiatan prodi</p>
+  {% for a in agenda_kalender %}
+  <div class="list-row">
+    <div class="lt">{{ a.judul }}<small>{{ a.kategori }}{% if a.jam %} · {{ a.jam }}{% endif %}{% if a.lokasi %} · {{ a.lokasi }}{% endif %}</small></div>
+    <div class="rt">{{ a.tgl_mulai }}</div>
+  </div>
+  {% endfor %}
+  <a class="btn-outline" style="margin-top:10px;display:inline-block;padding:6px 14px;font-size:12.5px;" href="{{ url_for('kalender.index') }}">Lihat Kalender Lengkap →</a>
+</div>
+{% endif %}
+{% endblock %}

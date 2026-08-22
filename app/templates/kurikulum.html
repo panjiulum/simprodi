@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+{% block title %}Kurikulum & OBE — {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="eyebrow">Akademik</div>
+<div class="page-head">
+  <div>
+    <h1>Kurikulum & OBE</h1>
+    <p>
+      {% if kur %}{{ kur.nama }}{% if kur.tahun_berlaku %} · {{ kur.tahun_berlaku }}{% endif %}
+      <span class="role-pill" style="margin-left:6px;">{{ kur.status }}</span>{% else %}Belum ada kurikulum{% endif %}
+    </p>
+  </div>
+</div>
+
+<form class="tab-row">
+  <a class="tab-item {% if tab=='dashboard' %}active{% endif %}" href="{{ url_for('kurikulum.index', tab='dashboard') }}">📊 Dashboard OBE</a>
+  <a class="tab-item {% if tab=='struktur' %}active{% endif %}" href="{{ url_for('kurikulum.index', tab='struktur') }}">📘 Struktur Kurikulum</a>
+  <a class="tab-item {% if tab=='pemetaan' %}active{% endif %}" href="{{ url_for('kurikulum.index', tab='pemetaan') }}">🧭 Pemetaan CPL-CPMK</a>
+  <a class="tab-item {% if tab=='rps' %}active{% endif %}" href="{{ url_for('kurikulum.index', tab='rps') }}">📄 RPS & Perangkat</a>
+</form>
+
+{% if not kur %}
+<div class="card"><p style="color:var(--muted);">Belum ada data kurikulum.</p></div>
+
+{% elif tab == 'dashboard' %}
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="lbl">Capaian Pembelajaran Lulusan (CPL)</div>
+    <div class="val">{{ stats.total_cpl }}</div>
+    <div class="delta">{{ stats.cpl_per_kategori.get('Sikap',0) }} Sikap · {{ stats.cpl_per_kategori.get('Pengetahuan',0) }} Pengetahuan · {{ stats.cpl_per_kategori.get('Keterampilan Umum',0) }} KU · {{ stats.cpl_per_kategori.get('Keterampilan Khusus',0) }} KK</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Mata Kuliah & Beban SKS</div>
+    <div class="val">{{ stats.total_mk }}</div>
+    <div class="delta">{{ stats.total_sks }} total SKS kurikulum</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">Kelengkapan RPS</div>
+    <div class="val">{{ stats.rps_persen }}%</div>
+    <div class="delta {% if stats.rps_persen < 100 %}warn{% endif %}">{{ stats.rps_per_status.get('Disahkan',0) }} dari {{ stats.total_mk }} MK disahkan</div>
+  </div>
+  <div class="stat-card">
+    <div class="lbl">MK Belum Ada CPMK</div>
+    <div class="val">{{ stats.mk_tanpa_cpmk }}</div>
+    <div class="delta {% if stats.mk_tanpa_cpmk %}warn{% endif %}">{% if stats.mk_tanpa_cpmk %}perlu dipetakan{% else %}lengkap{% endif %}</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2>Status Penyusunan RPS</h2>
+    <p class="card-sub">Jumlah mata kuliah per status, mengacu siklus penjaminan mutu (GKM)</p>
+    {% for s in status_list_dashboard %}{% endfor %}
+    {% for status, n in stats.rps_per_status.items() %}
+    <div class="list-row">
+      <div class="lt">{{ status }}</div>
+      <div class="rt"><span class="badge {% if status=='Disahkan' %}ok{% elif status=='Belum Disusun' %}danger{% else %}warn{% endif %}"><span class="dot"></span>{{ n }} MK</span></div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="card">
+    <h2>Distribusi Mata Kuliah per Semester</h2>
+    <p class="card-sub">Jumlah MK & total SKS tiap semester dalam struktur kurikulum</p>
+    {% if stats.per_semester %}
+      {% for s in stats.per_semester %}
+      <div class="list-row">
+        <div class="lt">Semester {{ s.semester }}</div>
+        <div class="rt">{{ s.jumlah_mk }} MK · {{ s.sks }} SKS</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="font-size:13px;color:var(--muted);">Belum ada mata kuliah — tambahkan di tab Struktur Kurikulum.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Identitas Kurikulum</h2>
+  <p class="card-sub">Kurikulum aktif dipakai sebagai konteks di seluruh tab modul ini. Menonaktifkan kurikulum ini otomatis membuat kurikulum lain (jika ada) menjadi aktif berikutnya.</p>
+  <form method="post" action="{{ url_for('kurikulum.simpan_versi') }}" class="form-row">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="id" value="{{ kur.id }}">
+    <div class="field-compact"><label>Nama Kurikulum *</label><input name="nama" value="{{ kur.nama }}" required></div>
+    <div class="field-compact"><label>Tahun Berlaku</label><input name="tahun_berlaku" value="{{ kur.tahun_berlaku or '' }}" placeholder="mis. 2024"></div>
+    <div class="field-compact"><label>Status</label>
+      <select name="status">
+        {% for s in status_kurikulum_list %}
+        <option value="{{ s }}" {% if kur.status==s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field-compact full" style="grid-column:1/-1;"><label>Keterangan</label><input name="keterangan" value="{{ kur.keterangan or '' }}"></div>
+    <div style="grid-column:1/-1;"><button class="btn-primary" type="submit">💾 Simpan Identitas Kurikulum</button></div>
+  </form>
+  {% if daftar_kurikulum|length > 1 %}
+  <div class="hint">Kurikulum lain: {% for k in daftar_kurikulum %}{% if k.id != kur.id %}{{ k.nama }} ({{ k.status }}){{ ", " if not loop.last }}{% endif %}{% endfor %}</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>🧬 Clone Version</h2>
+  <p class="card-sub">Salin seluruh CPL, Mata Kuliah, CPMK & Sub-CPMK dari kurikulum ini ke versi baru berstatus Draft — dipakai untuk memulai kurikulum tahun berikutnya (mis. "Kurikulum 2025" → Clone Version → "Kurikulum 2027") tanpa mengubah versi yang sudah Aktif/Diarsipkan. File RPS tidak ikut disalin — perlu disusun ulang di versi baru.</p>
+  <form method="post" action="{{ url_for('kurikulum.klon_versi', kid=kur.id) }}" class="form-row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field-compact"><label>Nama Kurikulum Baru</label><input name="nama_baru" placeholder="mis. {{ kur.nama }} (Revisi)"></div>
+    <div class="field-compact"><label>Tahun Berlaku Baru</label><input name="tahun_berlaku_baru" placeholder="mis. 2027"></div>
+    <div style="grid-column:1/-1;"><button class="btn-outline" type="submit">🧬 Clone dari "{{ kur.nama }}"</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Tambah Kurikulum Baru</h2>
+  <p class="card-sub">Mis. saat menyusun revisi kurikulum berikutnya tanpa kehilangan data kurikulum yang berjalan.</p>
+  <form method="post" action="{{ url_for('kurikulum.simpan_versi') }}" class="form-row">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field-compact"><label>Nama Kurikulum Baru *</label><input name="nama" placeholder="mis. Kurikulum OBE 2027" required></div>
+    <div class="field-compact"><label>Tahun Berlaku</label><input name="tahun_berlaku" placeholder="mis. 2027"></div>
+    <div style="grid-column:1/-1;"><button class="btn-outline" type="submit">+ Tambah sebagai Draft</button></div>
+  </form>
+</div>
+
+{% elif tab == 'struktur' %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:18px 24px;">
+      <h2 style="margin-bottom:2px;">Capaian Pembelajaran Lulusan (CPL)</h2>
+      <p class="card-sub">Unsur Sikap/Pengetahuan/Keterampilan Umum/Keterampilan Khusus sesuai SN-DIKTI</p>
+    </div>
+    <div class="card" style="padding:8px 0;margin-top:-14px;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Kode</th><th>Kategori</th><th>Deskripsi</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for r in cpl_rows %}
+          <tr>
+            <td class="nim" style="padding-left:24px;">{{ r.kode }}</td>
+            <td><span class="chip-status" style="background:var(--primary-soft);color:var(--primary-dark);">{{ r.kategori }}</span></td>
+            <td>{{ r.deskripsi }}</td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kurikulum.index', tab='struktur', edit_cpl=r.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('kurikulum.hapus_cpl', cid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus {{ r.kode }}? Pemetaan CPMK terkait ikut terhapus.');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">Belum ada CPL.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="padding:18px 24px;margin-top:18px;">
+      <h2 style="margin-bottom:2px;">Daftar Mata Kuliah</h2>
+      <p class="card-sub">Struktur kurikulum dan beban SKS per semester</p>
+    </div>
+    <div class="card" style="padding:8px 0;margin-top:-14px;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Kode</th><th>Mata Kuliah</th><th>SKS</th><th>Sem</th><th>Jenis</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for r in mk_rows %}
+          <tr>
+            <td class="nim" style="padding-left:24px;">{{ r.kode }}</td>
+            <td class="nama">{{ r.nama }}</td>
+            <td class="mono">{{ r.sks }}</td>
+            <td class="mono">{{ r.semester }}</td>
+            <td><span class="chip-skema {{ 'reguler' if r.jenis=='Wajib' else 'rpl' }}">{{ r.jenis }}</span></td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kurikulum.index', tab='struktur', edit_mk=r.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('kurikulum.hapus_mk', mid=r.id) }}" style="display:inline;" onsubmit="return confirm('Hapus {{ r.kode }}? CPMK & pemetaan CPL terkait ikut terhapus.');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Belum ada mata kuliah.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="split-form">
+    <div class="card">
+      <h2>{{ 'Ubah CPL' if edit_cpl else 'Tambah CPL' }}</h2>
+      <form method="post" action="{{ url_for('kurikulum.simpan_cpl') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_cpl %}<input type="hidden" name="id" value="{{ edit_cpl.id }}">{% endif %}
+        <div class="field-compact"><label>Kode *</label><input name="kode" value="{{ edit_cpl.kode if edit_cpl else '' }}" placeholder="mis. CPL-01" required></div>
+        <div class="field-compact"><label>Kategori</label>
+          <select name="kategori">
+            {% for k in kategori_list %}
+            <option value="{{ k }}" {% if edit_cpl and edit_cpl.kategori==k %}selected{% endif %}>{{ k }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Deskripsi *</label><input name="deskripsi" value="{{ edit_cpl.deskripsi if edit_cpl else '' }}" required></div>
+        <div class="field-compact"><label>Urutan Tampil</label><input name="urutan" type="number" value="{{ edit_cpl.urutan if edit_cpl else 0 }}"></div>
+        <button class="btn-primary btn-block" type="submit">💾 Simpan CPL</button>
+        {% if edit_cpl %}<a class="btn-outline btn-block" href="{{ url_for('kurikulum.index', tab='struktur') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>{{ 'Ubah Mata Kuliah' if edit_mk else 'Tambah Mata Kuliah' }}</h2>
+      <form method="post" action="{{ url_for('kurikulum.simpan_mk') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if edit_mk %}<input type="hidden" name="id" value="{{ edit_mk.id }}">{% endif %}
+        <div class="field-compact"><label>Kode *</label><input name="kode" value="{{ edit_mk.kode if edit_mk else '' }}" required></div>
+        <div class="field-compact"><label>Nama Mata Kuliah *</label><input name="nama" value="{{ edit_mk.nama if edit_mk else '' }}" required></div>
+        <div class="field-compact"><label>SKS</label><input name="sks" type="number" min="1" value="{{ edit_mk.sks if edit_mk else 2 }}"></div>
+        <div class="field-compact"><label>Semester</label><input name="semester" type="number" min="1" max="14" value="{{ edit_mk.semester if edit_mk else 1 }}"></div>
+        <div class="field-compact"><label>Jenis</label>
+          <select name="jenis">
+            {% for j in jenis_mk_list %}
+            <option value="{{ j }}" {% if edit_mk and edit_mk.jenis==j %}selected{% endif %}>{{ j }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Kelompok/Rumpun MK</label><input name="kelompok_mk" value="{{ edit_mk.kelompok_mk if edit_mk else '' }}"></div>
+        <div class="field-compact"><label>Keterangan</label><input name="keterangan" value="{{ edit_mk.keterangan if edit_mk else '' }}"></div>
+        <button class="btn-primary btn-block" type="submit">💾 Simpan Mata Kuliah</button>
+        {% if edit_mk %}<a class="btn-outline btn-block" href="{{ url_for('kurikulum.index', tab='struktur') }}">Batal</a>{% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+
+{% elif tab == 'pemetaan' %}
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:18px 24px 0;">
+      <h2 style="margin-bottom:2px;">Pilih Mata Kuliah</h2>
+      <p class="card-sub">CPMK dipetakan ke satu atau lebih CPL — hasilnya jadi matriks CPL × Mata Kuliah</p>
+      <div class="filter-chips" style="flex-wrap:wrap;margin:12px 0 18px;">
+        {% for m in mk_rows %}
+        <a class="filter-chip {% if mk_terpilih and mk_terpilih.id==m.id %}active{% endif %}" href="{{ url_for('kurikulum.index', tab='pemetaan', mk=m.id) }}">{{ m.kode }}</a>
+        {% else %}
+        <span style="font-size:13px;color:var(--muted);">Belum ada mata kuliah — tambahkan dulu di tab Struktur Kurikulum.</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if mk_terpilih %}
+    <div class="card">
+      <h2>{{ mk_terpilih.kode }} — {{ mk_terpilih.nama }}</h2>
+      <p class="card-sub">Daftar CPMK mata kuliah ini beserta pemetaannya ke CPL</p>
+      <table>
+        <thead><tr><th>Kode</th><th>Deskripsi CPMK</th><th>CPL Terpetakan</th><th>Sub-CPMK</th><th></th></tr></thead>
+        <tbody>
+        {% for c in cpmk_rows %}
+          <tr>
+            <td class="nim">{{ c.kode }}</td>
+            <td>{{ c.deskripsi }}</td>
+            <td>
+              {% for cpl in cpl_rows %}
+                {% if cpl.id in cpmk_mapped.get(c.id, []) %}
+                <span class="chip-status" style="background:var(--primary-soft);color:var(--primary-dark);margin:1px;">{{ cpl.kode }}</span>
+                {% endif %}
+              {% endfor %}
+              {% if not cpmk_mapped.get(c.id) %}<span style="color:var(--danger);font-size:11.5px;">belum dipetakan</span>{% endif %}
+            </td>
+            <td>
+              <a class="btn-outline {% if cpmk_terpilih and cpmk_terpilih.id==c.id %}active{% endif %}" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kurikulum.index', tab='pemetaan', mk=mk_terpilih.id, cpmk=c.id) }}">{{ sub_counts.get(c.id, 0) }} Sub-CPMK</a>
+            </td>
+            <td style="text-align:right;">
+              <form method="post" action="{{ url_for('kurikulum.hapus_cpmk', cid=c.id) }}" onsubmit="return confirm('Hapus {{ c.kode }}? Sub-CPMK terkait ikut terhapus.');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Belum ada CPMK untuk mata kuliah ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if cpmk_terpilih %}
+    <div class="card" style="padding:18px 24px;margin-top:18px;">
+      <h2 style="margin-bottom:2px;">Sub-CPMK — {{ cpmk_terpilih.kode }}</h2>
+      <p class="card-sub">Pecahan capaian per pertemuan, dipakai sebagai rujukan materi di Berita Acara Perkuliahan (BAP)</p>
+    </div>
+    <div class="card" style="padding:8px 0;margin-top:-14px;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">Kode</th><th>Deskripsi</th><th>Urutan</th><th style="padding-right:24px;"></th></tr></thead>
+        <tbody>
+        {% for s in sub_cpmk_rows %}
+          <tr>
+            <td class="nim" style="padding-left:24px;">{{ s.kode }}</td>
+            <td>{{ s.deskripsi }}</td>
+            <td class="mono">{{ s.urutan }}</td>
+            <td style="padding-right:24px;text-align:right;white-space:nowrap;">
+              <form method="post" action="{{ url_for('kurikulum.hapus_sub_cpmk', sid=s.id) }}" style="display:inline;" onsubmit="return confirm('Hapus {{ s.kode }}?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="mk_id" value="{{ mk_terpilih.id }}">
+                <input type="hidden" name="cpmk_id" value="{{ cpmk_terpilih.id }}">
+                <button class="btn-outline" style="padding:5px 10px;font-size:12px;color:var(--danger);">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">Belum ada Sub-CPMK.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card" style="margin-top:18px;">
+      <h2>Tambah Sub-CPMK</h2>
+      <form method="post" action="{{ url_for('kurikulum.simpan_sub_cpmk') }}" class="form-row">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="cpmk_id" value="{{ cpmk_terpilih.id }}">
+        <input type="hidden" name="mk_id" value="{{ mk_terpilih.id }}">
+        <div class="field-compact"><label>Kode *</label><input name="kode" placeholder="mis. Sub-CPMK-1.1" required></div>
+        <div class="field-compact"><label>Urutan Tampil</label><input name="urutan" type="number" value="0"></div>
+        <div class="field-compact full" style="grid-column:1/-1;"><label>Deskripsi *</label><input name="deskripsi" required></div>
+        <div style="grid-column:1/-1;"><button class="btn-primary" type="submit">💾 Simpan Sub-CPMK</button></div>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="split-form">
+    {% if mk_terpilih %}
+    <div class="card">
+      <h2>Tambah CPMK</h2>
+      <p class="card-sub">Untuk {{ mk_terpilih.kode }}</p>
+      <form method="post" action="{{ url_for('kurikulum.simpan_cpmk') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="mata_kuliah_id" value="{{ mk_terpilih.id }}">
+        <div class="field-compact"><label>Kode CPMK *</label><input name="kode" placeholder="mis. CPMK-1" required></div>
+        <div class="field-compact"><label>Deskripsi *</label><input name="deskripsi" required></div>
+        <div class="section-label">Petakan ke CPL</div>
+        {% for cpl in cpl_rows %}
+        <label class="chk-row"><input type="checkbox" name="cpl_ids" value="{{ cpl.id }}"> {{ cpl.kode }} — {{ cpl.kategori }}</label>
+        {% else %}
+        <p class="hint">Belum ada CPL — tambahkan dulu di tab Struktur Kurikulum.</p>
+        {% endfor %}
+        <button class="btn-primary btn-block" type="submit" style="margin-top:14px;">💾 Simpan CPMK</button>
+      </form>
+    </div>
+    {% else %}
+    <div class="card"><p style="color:var(--muted);font-size:13px;">Pilih mata kuliah di sebelah kiri untuk mulai memetakan CPMK.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+{% elif tab == 'rps' %}
+<div class="card" style="padding:18px 24px;">
+  <form class="filter-chips" method="get" style="margin:0;">
+    <input type="hidden" name="tab" value="rps">
+    <a class="filter-chip {% if not status_filter %}active{% endif %}" href="{{ url_for('kurikulum.index', tab='rps') }}">Semua Status</a>
+    {% for s in status_list %}
+    <a class="filter-chip {% if status_filter==s %}active{% endif %}" href="{{ url_for('kurikulum.index', tab='rps', status=s) }}">{{ s }}</a>
+    {% endfor %}
+  </form>
+</div>
+
+<div class="split">
+  <div class="split-table">
+    <div class="card" style="padding:8px 0;">
+      <table>
+        <thead><tr><th style="padding-left:24px;">MK</th><th>Status RPS</th><th>Revisi</th><th>Tanggal Sahkan</th><th>Berkas</th></tr></thead>
+        <tbody>
+        {% for r in mk_rows %}
+          <tr>
+            <td style="padding-left:24px;"><span class="nim">{{ r.kode }}</span><div class="nama">{{ r.nama }}</div></td>
+            <td>
+              <span class="chip-status" style="{% if r.rps_status=='Disahkan' %}background:var(--success-soft);color:var(--success);{% elif r.rps_status=='Belum Disusun' %}background:var(--danger-soft);color:var(--danger);{% else %}background:var(--warning-soft);color:var(--warning);{% endif %}">{{ r.rps_status }}</span>
+            </td>
+            <td>{{ r.rps_revisi or '-' }}</td>
+            <td class="mono">{{ r.rps_tanggal_sahkan or '-' }}</td>
+            <td>
+              {% if r.rps_file %}
+              <a class="btn-outline" style="padding:5px 10px;font-size:12px;" href="{{ url_for('kurikulum.unduh_rps', mid=r.id) }}">⬇ Unduh</a>
+              {% else %}<span style="color:var(--muted);font-size:12px;">belum ada berkas</span>{% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">Tidak ada mata kuliah untuk status ini.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="split-form">
+    <div class="card">
+      <h2>Perbarui Status RPS</h2>
+      <p class="card-sub">Unggah/ganti berkas RPS (PDF/DOC/DOCX) & perbarui status per mata kuliah</p>
+      <form method="post" enctype="multipart/form-data" id="rps-form"
+            action="{{ url_for('kurikulum.update_rps', mid=0) }}" onsubmit="this.action=this.action.replace('/0/', '/'+document.getElementById('rps-mk').value+'/');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field-compact">
+          <label>Mata Kuliah *</label>
+          <select name="mk_select" id="rps-mk" required>
+            <option value="">— pilih —</option>
+            {% for r in mk_rows %}
+            <option value="{{ r.id }}">{{ r.kode }} — {{ r.nama }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Status RPS</label>
+          <select name="rps_status">
+            {% for s in status_list %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field-compact"><label>Nomor Revisi</label><input name="rps_revisi" placeholder="mis. Rev 2.0"></div>
+        <div class="field-compact"><label>Tanggal Disahkan</label><input name="rps_tanggal_sahkan" type="date"></div>
+        <div class="field-compact"><label>Berkas RPS (PDF/DOC/DOCX)</label><input name="rps_file" type="file" accept=".pdf,.doc,.docx"></div>
+        <button class="btn-primary btn-block" type="submit" style="margin-top:10px;">💾 Simpan Status RPS</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
