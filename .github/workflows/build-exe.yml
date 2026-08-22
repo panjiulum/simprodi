@@ -1,0 +1,58 @@
+name: Build SIMPRODI Windows Installer
+
+# Dipicu otomatis tiap push ke `main`, dan bisa dijalankan manual lewat
+# tab Actions -> "Build SIMPRODI Windows Installer" -> "Run workflow".
+# Dijalankan di runner "windows-latest" milik GitHub, yang sudah punya
+# Inno Setup 6 (ISCC.exe) terpasang bawaan -> tidak perlu instalasi apa pun
+# secara manual, cukup checkout + pip install + pyinstaller + iscc.
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout kode
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependency Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build SIMPRODI.exe (PyInstaller)
+        run: pyinstaller SIMPRODI.spec
+
+      - name: Cek hasil build PyInstaller
+        run: |
+          if (!(Test-Path "dist\SIMPRODI.exe")) {
+            Write-Error "dist\SIMPRODI.exe tidak ditemukan - build PyInstaller gagal."
+            exit 1
+          }
+
+      - name: Build installer (Inno Setup)
+        run: ISCC.exe installer.iss
+
+      - name: Cek hasil build Inno Setup
+        run: |
+          if (!(Test-Path "Output\SIMPRODI_Setup.exe")) {
+            Write-Error "Output\SIMPRODI_Setup.exe tidak ditemukan - build Inno Setup gagal."
+            exit 1
+          }
+
+      - name: Unggah installer sebagai Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SIMPRODI_Setup
+          path: Output/SIMPRODI_Setup.exe
+          if-no-files-found: error
